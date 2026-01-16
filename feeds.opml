@@ -2,7 +2,7 @@
 <opml version="2.0">
 <head><title>Daily RSS summary</title></head>
 <body>
-<outline type="rss" xmlurl="https://birchtree.me/rss/" title="Birchtree.me" text="Birchtree.me" htmlurl="https://https://birchtree.me/rss/.me/"/>
+<outline type="rss" xmlurl="https://birchtree.me/rss/" title="Birchtree.me" text="Birchtree.me" htmlurl="https://birchtree.me/"/>
 <outline type="rss" xmlurl="https://multiline.co/mment/feed.json" title="multiline comment" text="multiline comment" htmlurl="https://multiline.co/"/>
 <outline type="rss" xmlUrl="https://www.daniel.pizza/feed.xml" title="daniel.pizza" text="daniel.pizza" htmlUrl="https://www.daniel.pizza/"/>
 <outline type="rss" xmlUrl="https://theverge.com/rss/index.xml" title="The Verge" text="The Verge" htmlUrl="https://theverge.com"/>
