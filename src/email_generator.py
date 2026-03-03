@@ -198,7 +198,8 @@ def send_email(
     smtp_host: str,
     smtp_port: int,
     smtp_user: str,
-    smtp_password: str
+    smtp_password: str,
+    smtp_security: str = "auto"
 ) -> None:
     """
     Send email via SMTP.
@@ -209,6 +210,7 @@ def send_email(
         smtp_port: SMTP server port
         smtp_user: SMTP username
         smtp_password: SMTP password
+        smtp_security: One of auto, starttls, ssl, none
 
     Raises:
         smtplib.SMTPException: If SMTP authentication or sending fails
@@ -217,13 +219,28 @@ def send_email(
     logger.info(f"Connecting to SMTP server {smtp_host}:{smtp_port}...")
 
     try:
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as server:
-            server.starttls()
-            server.login(smtp_user, smtp_password)
-            server.send_message(msg)
+        security_mode = (smtp_security or "auto").strip().lower()
+        if security_mode == "auto":
+            security_mode = "ssl" if smtp_port == 465 else "starttls"
+
+        if security_mode == "ssl":
+            with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=30) as server:
+                server.login(smtp_user, smtp_password)
+                server.send_message(msg)
+        elif security_mode == "starttls":
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_password)
+                server.send_message(msg)
+        elif security_mode == "none":
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as server:
+                server.login(smtp_user, smtp_password)
+                server.send_message(msg)
+        else:
+            raise ValueError(f"Unsupported SMTP_SECURITY value: {smtp_security}")
 
         logger.info(f"Email sent successfully to {msg['To']}")
 
-    except (smtplib.SMTPException, OSError) as e:
+    except (smtplib.SMTPException, OSError, ValueError) as e:
         logger.error(f"Failed to send email: {str(e)}")
         raise
