@@ -6,7 +6,7 @@ Automated daily email digest of RSS feed updates, powered by GitHub Actions.
 
 - Fetches 100-200 RSS feeds in parallel
 - Filters for posts published yesterday
-- Filters by AI chip/semiconductor keywords (customizable via `TOPIC_KEYWORDS`)
+- Uses a strict AI-chip filter (HBM/advanced packaging/interconnect/data-center & domestic GPU/inference-training/AI servers), plus optional `TOPIC_KEYWORDS` include list
 - Sends formatted HTML + plain text email
 - **HTML entity decoding** - Special characters (curly quotes, em dashes, etc.) render correctly
 - **Clickable feed titles** - Feed names link to the main site in HTML emails
