@@ -6,11 +6,12 @@ Automated daily email digest of RSS feed updates, powered by GitHub Actions.
 
 - Fetches 100-200 RSS feeds in parallel
 - Filters for posts published yesterday
+- Filters by AI chip/semiconductor keywords (customizable via `TOPIC_KEYWORDS`)
 - Sends formatted HTML + plain text email
 - **HTML entity decoding** - Special characters (curly quotes, em dashes, etc.) render correctly
 - **Clickable feed titles** - Feed names link to the main site in HTML emails
 - **CLI testing tool** - Debug individual feeds locally without sending emails
-- Runs automatically every day at 2pm UTC (8am Central, 7am during DST)
+- Runs automatically every day at 06:00 UTC (14:00 Beijing time)
 - Graceful error handling for failed feeds
 - Zero infrastructure required (runs on GitHub Actions)
 
@@ -41,7 +42,9 @@ Add the following secrets:
 | `SMTP_PORT` | SMTP port (usually 587) | `587` |
 | `SMTP_USER` | Your email address | `your@email.com` |
 | `SMTP_PASSWORD` | App-specific password | `abcd efgh ijkl mnop` |
-| `RECIPIENT_EMAIL` | Email to receive digest | `recipient@email.com` |
+| `SMTP_SECURITY` | Optional SMTP encryption mode: `auto`, `ssl`, `starttls`, `none` | `ssl` |
+| `RECIPIENT_EMAIL` | One or more emails to receive digest (comma-separated) | `a@example.com,b@example.com` |
+| `TOPIC_KEYWORDS` | Optional keyword list for topic filtering (comma-separated) | `AI,芯片,半导体,NVIDIA` |
 
 #### Gmail Setup
 
@@ -73,6 +76,7 @@ export SMTP_HOST=smtp.gmail.com
 export SMTP_PORT=587
 export SMTP_USER=your@email.com
 export SMTP_PASSWORD=your-app-password
+export SMTP_SECURITY=auto
 export RECIPIENT_EMAIL=recipient@email.com
 
 # Run the script
@@ -108,8 +112,7 @@ python -m src.test_feed "https://example.com/feed.xml"
 
 ## Schedule
 
-- **Default:** 2pm UTC daily (8am Central Standard Time)
-- **During DST:** Digest arrives at 7am Central (GitHub Actions uses UTC only)
+- **Default:** 06:00 UTC daily (**14:00 Beijing time**)
 - **To change:** Edit the cron schedule in `.github/workflows/daily-digest.yml`
 
 ## Email Format
