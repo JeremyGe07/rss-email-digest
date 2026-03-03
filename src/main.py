@@ -37,6 +37,7 @@ async def main():
     smtp_user = os.getenv("SMTP_USER")
     smtp_password = os.getenv("SMTP_PASSWORD")
     recipient_email = os.getenv("RECIPIENT_EMAIL")
+    smtp_security = os.getenv("SMTP_SECURITY", "auto")
     keywords_env = os.getenv("TOPIC_KEYWORDS", "")
     keywords = [k.strip() for k in keywords_env.split(",") if k.strip()] or DEFAULT_AI_SEMICONDUCTOR_KEYWORDS
 
@@ -76,7 +77,8 @@ async def main():
             smtp_host=smtp_host,
             smtp_port=smtp_port,
             smtp_user=smtp_user,
-            smtp_password=smtp_password
+            smtp_password=smtp_password,
+            smtp_security=smtp_security
         )
 
         logger.info("RSS digest sent successfully!")

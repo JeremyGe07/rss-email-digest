@@ -42,6 +42,7 @@ Add the following secrets:
 | `SMTP_PORT` | SMTP port (usually 587) | `587` |
 | `SMTP_USER` | Your email address | `your@email.com` |
 | `SMTP_PASSWORD` | App-specific password | `abcd efgh ijkl mnop` |
+| `SMTP_SECURITY` | Optional SMTP encryption mode: `auto`, `ssl`, `starttls`, `none` | `ssl` |
 | `RECIPIENT_EMAIL` | One or more emails to receive digest (comma-separated) | `a@example.com,b@example.com` |
 | `TOPIC_KEYWORDS` | Optional keyword list for topic filtering (comma-separated) | `AI,芯片,半导体,NVIDIA` |
 
@@ -75,6 +76,7 @@ export SMTP_HOST=smtp.gmail.com
 export SMTP_PORT=587
 export SMTP_USER=your@email.com
 export SMTP_PASSWORD=your-app-password
+export SMTP_SECURITY=auto
 export RECIPIENT_EMAIL=recipient@email.com
 
 # Run the script
