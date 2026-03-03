@@ -8,5 +8,24 @@
 <outline type="rss" xmlUrl="https://www.expreview.com/rss.php" title="超能网 Expreview" text="超能网 Expreview" htmlUrl="https://www.expreview.com"/>
 <outline type="rss" xmlUrl="https://technews.tw/tn-rss/" title="科技新报 TechNews" text="科技新报 TechNews" htmlUrl="https://technews.tw"/>
 <outline type="rss" xmlUrl="https://chinese.engadget.com/rss.xml" title="Engadget 中文版" text="Engadget 中文版" htmlUrl="https://chinese.engadget.com"/>
+<outline type="rss" xmlUrl="https://www.jiqizhixin.com/rss" title="机器之心" text="机器之心" htmlUrl="https://www.jiqizhixin.com"/>
+<outline type="rss" xmlUrl="https://www.ruanyifeng.com/blog/atom.xml" title="阮一峰的网络日志" text="阮一峰的网络日志" htmlUrl="https://www.ruanyifeng.com/blog/"/>
+<outline type="rss" xmlUrl="https://sspai.com/feed" title="少数派" text="少数派" htmlUrl="https://sspai.com"/>
+<outline type="rss" xmlUrl="https://iccircle.com/feed" title="IC技术圈" text="IC技术圈" htmlUrl="https://iccircle.com"/>
+<outline type="rss" xmlUrl="https://cn.news.synopsys.com/rss" title="Synopsys CN News" text="Synopsys CN News" htmlUrl="https://cn.news.synopsys.com"/>
+<outline type="rss" xmlUrl="https://www.synopsys.com/snps/blogs/chip-design.en-us.xml" title="Synopsys Chip Design Blog" text="Synopsys Chip Design Blog" htmlUrl="https://www.synopsys.com/snps/blogs/chip-design.html"/>
+<outline type="rss" xmlUrl="http://feeds.feedburner.com/cadence/community/blogs" title="Cadence Community Blogs" text="Cadence Community Blogs" htmlUrl="https://community.cadence.com"/>
+<outline type="rss" xmlUrl="https://community.arm.com/arm-community-blogs/b/mainfeed?Type=BlogsOnly" title="ARM Community Blogs" text="ARM Community Blogs" htmlUrl="https://community.arm.com"/>
+<outline type="rss" xmlUrl="https://www.crazyfpga.com/forum.php?mod=rss" title="CrazyFPGA 社区 BBS" text="CrazyFPGA 社区 BBS" htmlUrl="https://www.crazyfpga.com"/>
+<outline type="rss" xmlUrl="https://www.crazyfpga.com/forum.php?mod=rss&amp;fid=18" title="CrazyFPGA - FPGA Xilinx" text="CrazyFPGA - FPGA Xilinx" htmlUrl="https://www.crazyfpga.com/forum.php?mod=forumdisplay&amp;fid=18"/>
+<outline type="rss" xmlUrl="https://www.crazyfpga.com/forum.php?mod=rss&amp;fid=31" title="CrazyFPGA - 知识分享" text="CrazyFPGA - 知识分享" htmlUrl="https://www.crazyfpga.com/forum.php?mod=forumdisplay&amp;fid=31"/>
+<outline type="rss" xmlUrl="https://www.crazyfpga.com/forum.php?mod=rss&amp;fid=28" title="CrazyFPGA - FPGA ISP" text="CrazyFPGA - FPGA ISP" htmlUrl="https://www.crazyfpga.com/forum.php?mod=forumdisplay&amp;fid=28"/>
+<outline type="rss" xmlUrl="https://www.crazyfpga.com/forum.php?mod=rss&amp;fid=21" title="CrazyFPGA - CMOS摄像头" text="CrazyFPGA - CMOS摄像头" htmlUrl="https://www.crazyfpga.com/forum.php?mod=forumdisplay&amp;fid=21"/>
+<outline type="rss" xmlUrl="https://bbs.eetop.cn/forum.php?mod=rss" title="EETOP BBS" text="EETOP BBS" htmlUrl="https://bbs.eetop.cn"/>
+<outline type="rss" xmlUrl="https://segmentfault.com/feeds/questions" title="思否 SegmentFault 问答" text="思否 SegmentFault 问答" htmlUrl="https://segmentfault.com/questions"/>
+<outline type="rss" xmlUrl="https://blog.honk.wang/atom.xml" title="HonkW" text="HonkW" htmlUrl="https://blog.honk.wang"/>
+<outline type="rss" xmlUrl="http://www.biscuitos.cn/feed.xml" title="BiscuitOS 开源社区" text="BiscuitOS 开源社区" htmlUrl="http://www.biscuitos.cn"/>
+<outline type="rss" xmlUrl="https://www.eetimes.com/feed/" title="EE Times" text="EE Times" htmlUrl="https://www.eetimes.com"/>
+<outline type="rss" xmlUrl="https://semiwiki.com/feed/" title="SemiWiki" text="SemiWiki" htmlUrl="https://semiwiki.com"/>
 </body>
 </opml>
