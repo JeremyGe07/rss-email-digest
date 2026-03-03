@@ -15,6 +15,45 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+DEFAULT_AI_SEMICONDUCTOR_KEYWORDS = [
+    "ai",
+    "artificial intelligence",
+    "chip",
+    "chips",
+    "semiconductor",
+    "semi",
+    "gpu",
+    "npu",
+    "asic",
+    "hbm",
+    "dram",
+    "ddr",
+    "wafer",
+    "foundry",
+    "台积电",
+    "tsmc",
+    "三星",
+    "intel",
+    "英伟达",
+    "nvidia",
+    "半导体",
+    "芯片",
+    "算力",
+    "大模型",
+    "ai芯片",
+    "ai 半导体",
+]
+
+
+def matches_keywords(title: str, excerpt: str, keywords: List[str]) -> bool:
+    """Return True if title/excerpt contains any keyword (case-insensitive)."""
+    if not keywords:
+        return True
+
+    haystack = f"{title} {excerpt}".lower()
+    return any(keyword.lower() in haystack for keyword in keywords)
+
+
 def parse_opml(opml_path: Path) -> List[Dict[str, str]]:
     """
     Parse OPML file and extract RSS feed URLs and titles.
@@ -75,7 +114,13 @@ def is_from_yesterday(date_value: Union[datetime, time.struct_time, None]) -> bo
     return date_value.date() == yesterday
 
 
-async def fetch_feed(feed_name: str, feed_url: str, timeout: int = 15, html_url: str = "") -> Dict:
+async def fetch_feed(
+    feed_name: str,
+    feed_url: str,
+    timeout: int = 15,
+    html_url: str = "",
+    keywords: List[str] = None
+) -> Dict:
     """
     Fetch RSS feed and extract yesterday's posts.
 
@@ -88,6 +133,9 @@ async def fetch_feed(feed_name: str, feed_url: str, timeout: int = 15, html_url:
     Returns:
         Dict with keys: name, status, posts, error_message (if error)
     """
+    if keywords is None:
+        keywords = DEFAULT_AI_SEMICONDUCTOR_KEYWORDS
+
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(feed_url, timeout=aiohttp.ClientTimeout(total=timeout)) as response:
@@ -128,11 +176,12 @@ async def fetch_feed(feed_name: str, feed_url: str, timeout: int = 15, html_url:
                 if len(excerpt) > 300:
                     excerpt = excerpt[:300] + "..."
 
-                yesterday_posts.append({
-                    "title": entry.title,
-                    "link": entry.link,
-                    "excerpt": excerpt
-                })
+                if matches_keywords(entry.title, excerpt, keywords):
+                    yesterday_posts.append({
+                        "title": entry.title,
+                        "link": entry.link,
+                        "excerpt": excerpt
+                    })
 
         status = "success" if yesterday_posts else "no_updates"
         logger.info(f"{feed_name}: {len(yesterday_posts)} posts from yesterday")
@@ -164,7 +213,12 @@ async def fetch_feed(feed_name: str, feed_url: str, timeout: int = 15, html_url:
         }
 
 
-async def fetch_all_feeds(feeds: List[Dict[str, str]], batch_size: int = 10, timeout: int = 15) -> List[Dict]:
+async def fetch_all_feeds(
+    feeds: List[Dict[str, str]],
+    batch_size: int = 10,
+    timeout: int = 15,
+    keywords: List[str] = None
+) -> List[Dict]:
     """
     Fetch multiple RSS feeds in parallel batches.
 
@@ -184,7 +238,16 @@ async def fetch_all_feeds(feeds: List[Dict[str, str]], batch_size: int = 10, tim
     # Process feeds in batches to avoid overwhelming the system
     for i in range(0, len(feeds), batch_size):
         batch = feeds[i:i + batch_size]
-        tasks = [fetch_feed(feed["title"], feed["url"], timeout, feed.get("html_url", "")) for feed in batch]
+        tasks = [
+            fetch_feed(
+                feed["title"],
+                feed["url"],
+                timeout,
+                feed.get("html_url", ""),
+                keywords,
+            )
+            for feed in batch
+        ]
         batch_results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Filter out exceptions and add to results
