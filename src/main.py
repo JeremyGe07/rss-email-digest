@@ -4,8 +4,9 @@ import logging
 import os
 import sys
 from pathlib import Path
+from email.utils import getaddresses
 
-from feed_parser import parse_opml, fetch_all_feeds
+from feed_parser import parse_opml, fetch_all_feeds, DEFAULT_AI_SEMICONDUCTOR_KEYWORDS
 from email_generator import create_email_message, send_email
 
 
@@ -36,6 +37,14 @@ async def main():
     smtp_user = os.getenv("SMTP_USER")
     smtp_password = os.getenv("SMTP_PASSWORD")
     recipient_email = os.getenv("RECIPIENT_EMAIL")
+    keywords_env = os.getenv("TOPIC_KEYWORDS", "")
+    keywords = [k.strip() for k in keywords_env.split(",") if k.strip()] or DEFAULT_AI_SEMICONDUCTOR_KEYWORDS
+
+    recipient_list = [email for _, email in getaddresses([recipient_email]) if email]
+    if not recipient_list:
+        logger.error("RECIPIENT_EMAIL must contain at least one valid recipient")
+        sys.exit(1)
+    recipient_header = ", ".join(recipient_list)
 
     try:
         # Parse OPML file
@@ -51,14 +60,14 @@ async def main():
         logger.info(f"Found {len(feeds)} feeds")
 
         # Fetch all feeds
-        feed_results = await fetch_all_feeds(feeds, batch_size=10, timeout=15)
+        feed_results = await fetch_all_feeds(feeds, batch_size=10, timeout=15, keywords=keywords)
 
         # Create and send email
         logger.info("Generating email...")
         msg = create_email_message(
             feed_results=feed_results,
             from_email=smtp_user,
-            to_email=recipient_email
+            to_email=recipient_header
         )
 
         logger.info("Sending email...")

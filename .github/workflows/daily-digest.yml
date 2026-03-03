@@ -2,8 +2,8 @@ name: Daily RSS Digest
 
 on:
   schedule:
-    # Run at 2pm UTC (8am Central, 7am during DST)
-    - cron: '0 13 * * *'
+    # Run at 14:00 Beijing time (06:00 UTC)
+    - cron: '0 6 * * *'
   workflow_dispatch:  # Allow manual triggering
 
 jobs:
@@ -29,4 +29,5 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+          TOPIC_KEYWORDS: ${{ secrets.TOPIC_KEYWORDS }}
         run: python src/main.py
