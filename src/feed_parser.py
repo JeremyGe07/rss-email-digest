@@ -16,55 +16,34 @@ logger = logging.getLogger(__name__)
 
 
 DEFAULT_AI_SEMICONDUCTOR_KEYWORDS = [
-    "ai",
-    "artificial intelligence",
-    "chip",
-    "chips",
-    "semiconductor",
-    "semi",
-    "gpu",
-    "npu",
-    "asic",
-    "国产",
-    "國產",
-    "昇腾",
-    "昇騰",
-    "海光",
-    "摩尔",
-    "摩爾",
-    "摩尔线程",
-    "摩爾線程",
-    "輝達",
-    "英偉達",
-    "顯卡",
-    "图形处理器",
-    "圖形處理器",
-    "晶片",
-    "晶圆",
-    "晶圓",
-    "製程",
-    "制程",
-    "EDA",
-    "fpga",
-    "xilinx",
-    "hbm",
-    "dram",
-    "ddr",
-    "wafer",
-    "foundry",
-    "台积电",
-    "tsmc",
-    "三星",
-    "intel",
-    "英伟达",
-    "nvidia",
-    "半导体",
-    "芯片",
-    "算力",
-    "大模型",
-    "ai芯片",
-    "ai 半导体",
+    "AI芯片", "AI 晶片", "加速卡", "AI加速卡", "训练卡", "推理卡", "算力卡", "智算卡",
+    "GPU", "data center gpu", "accelerator", "AI accelerator", "ASIC", "NPU", "TPU", "DPU", "XPU",
+    "H100", "H200", "B200", "GB200", "Blackwell", "Hopper", "MI300", "Gaudi", "Trainium", "Inferentia",
+    "国产GPU", "摩尔线程", "壁仞", "天数智芯", "沐曦", "景嘉微", "寒武纪", "昆仑芯", "昇腾", "海光",
+    "龙芯", "兆芯", "飞腾", "鲲鹏", "HBM", "HBM2e", "HBM3", "HBM3E", "CoWoS", "SoIC", "InFO",
+    "Foveros", "EMIB", "Chiplet", "UCIe", "2.5D", "3D封装", "TSV", "interposer", "先进封装", "NVLink",
+    "InfiniBand", "RoCE", "CXL", "PCIe 6.0", "PCIe 5.0", "800G", "硅光", "光模块", "液冷", "浸没式",
 ]
+
+DEFAULT_TOPIC_FILTER = {
+    "threshold_default": 6,
+    "require_strong_hit": True,
+    "title_strong_direct_accept": True,
+    "weights": {"strong": 6, "medium": 2, "weak": 1},
+    "strong": DEFAULT_AI_SEMICONDUCTOR_KEYWORDS,
+    "medium": [
+        "台积电", "TSMC", "三星代工", "Intel Foundry", "foundry", "先进制程", "EUV", "High-NA", "3nm", "2nm",
+        "GAA", "背面供电", "良率", "tape-out", "流片", "掩膜", "光刻胶", "EDA", "Synopsys", "Cadence",
+        "Siemens EDA", "DRC", "LVS", "PDK", "封装产能", "CoWoS产能", "HBM产能", "ABF", "inference",
+        "training", "推理", "训练", "数据中心", "AI 服务器", "训练集群", "推理集群",
+    ],
+    "weak": ["CUDA", "ROCm", "oneAPI", "TensorRT", "OpenXLA", "编译器", "驱动"],
+    "exclude": [
+        "提示词", "prompt", "教程", "使用技巧", "上手", "AI绘画", "AIGC", "文生图", "视频生成", "聊天机器人",
+        "应用", "插件", "工作流", "手机", "平板", "耳机", "相机", "手表", "家电", "评测", "开箱", "跑分",
+        "游戏", "电竞", "车机", "智驾", "自动驾驶",
+    ],
+}
 
 
 def matches_keywords(title: str, excerpt: str, keywords: List[str]) -> bool:
@@ -74,6 +53,33 @@ def matches_keywords(title: str, excerpt: str, keywords: List[str]) -> bool:
 
     haystack = f"{title} {excerpt}".lower()
     return any(keyword.lower() in haystack for keyword in keywords)
+
+
+def matches_topic_filter(title: str, excerpt: str, topic_filter: Dict = None) -> bool:
+    """Return True when title/excerpt matches strict AI chip filtering rules."""
+    config = topic_filter or DEFAULT_TOPIC_FILTER
+    text = f"{title} {excerpt}".lower()
+    title_lower = title.lower()
+
+    if any(term.lower() in text for term in config.get("exclude", [])):
+        return False
+
+    strong_hits = [term for term in config.get("strong", []) if term.lower() in text]
+
+    if config.get("title_strong_direct_accept", False) and any(
+        term.lower() in title_lower for term in config.get("strong", [])
+    ):
+        return True
+
+    if config.get("require_strong_hit", False) and not strong_hits:
+        return False
+
+    weights = config.get("weights", {"strong": 6, "medium": 2, "weak": 1})
+    score = len(strong_hits) * weights.get("strong", 6)
+    score += sum(1 for term in config.get("medium", []) if term.lower() in text) * weights.get("medium", 2)
+    score += sum(1 for term in config.get("weak", []) if term.lower() in text) * weights.get("weak", 1)
+
+    return score >= config.get("threshold_default", 6)
 
 
 def parse_opml(opml_path: Path) -> List[Dict[str, str]]:
@@ -212,7 +218,7 @@ async def fetch_feed(
 
                 title = getattr(entry, "title", "(No title)")
                 link = getattr(entry, "link", "")
-                if matches_keywords(title, excerpt, keywords):
+                if matches_keywords(title, excerpt, keywords) and matches_topic_filter(title, excerpt):
                     yesterday_posts.append({
                         "title": title,
                         "link": link,

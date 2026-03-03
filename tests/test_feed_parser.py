@@ -2,7 +2,21 @@ import pytest
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 import asyncio
-from src.feed_parser import parse_opml, is_from_yesterday, fetch_feed, fetch_all_feeds
+from src.feed_parser import (
+    parse_opml,
+    is_from_yesterday,
+    fetch_feed,
+    fetch_all_feeds,
+    matches_topic_filter,
+)
+
+
+def test_matches_topic_filter_accepts_strong_signal():
+    assert matches_topic_filter("HBM3E 与 CoWoS 产能持续拉升", "数据中心 GPU 需求旺盛") is True
+
+
+def test_matches_topic_filter_rejects_generic_ai_content():
+    assert matches_topic_filter("AI 绘画教程", "提示词与工作流上手指南") is False
 
 
 def test_parse_opml_returns_feed_list():
