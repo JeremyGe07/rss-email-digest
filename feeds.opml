@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <opml version="2.0">
-<head><title>AI 芯片/半导体 Daily RSS</title></head>
+<head>
+<title>AI 芯片/半导体 Daily RSS</title>
+</head>
 <body>
 <outline type="rss" xmlUrl="https://www.dramx.com/rss.xml" title="DRAMx" text="DRAMx" htmlUrl="https://www.dramx.com"/>
 <outline type="rss" xmlUrl="https://www.icsmart.cn/feed/" title="ICsmart" text="ICsmart" htmlUrl="https://www.icsmart.cn"/>
@@ -27,5 +29,20 @@
 <outline type="rss" xmlUrl="http://www.biscuitos.cn/feed.xml" title="BiscuitOS 开源社区" text="BiscuitOS 开源社区" htmlUrl="http://www.biscuitos.cn"/>
 <outline type="rss" xmlUrl="https://www.eetimes.com/feed/" title="EE Times" text="EE Times" htmlUrl="https://www.eetimes.com"/>
 <outline type="rss" xmlUrl="https://semiwiki.com/feed/" title="SemiWiki" text="SemiWiki" htmlUrl="https://semiwiki.com"/>
+<outline type="rss" xmlUrl="https://developer.nvidia.cn/zh-cn/blog/feed" title="NVIDIA Developer Blog 中文" text="NVIDIA Developer Blog 中文" htmlUrl="https://developer.nvidia.cn/zh-cn/blog"/>
+<outline type="rss" xmlUrl="https://www.st.com.cn/etc/st-search-cx/rss/zh/press-rss.xml" title="ST Press Releases 中文" text="ST Press Releases 中文" htmlUrl="https://www.st.com.cn/content/st_com/zh.html"/>
+<outline type="rss" xmlUrl="https://blogs.nvidia.cn/feed/" title="NVIDIA 英伟达博客" text="NVIDIA 英伟达博客" htmlUrl="https://blogs.nvidia.cn/"/>
+<outline type="rss" xmlUrl="https://blogs.nvidia.cn/blog/category/news/feed/" title="NVIDIA News 分类" text="NVIDIA News 分类" htmlUrl="https://blogs.nvidia.cn/blog/category/news/"/>
+<outline type="rss" xmlUrl="https://techcrunch.com/feed/" title="TechCrunch" text="TechCrunch" htmlUrl="https://techcrunch.com/"/>
+<outline type="rss" xmlUrl="https://www.theverge.com/rss/index.xml" title="The Verge" text="The Verge" htmlUrl="https://www.theverge.com/"/>
+<outline type="rss" xmlUrl="https://www.wired.com/feed/rss" title="Wired" text="Wired" htmlUrl="https://www.wired.com/"/>
+<outline type="rss" xmlUrl="https://feeds.arstechnica.com/arstechnica/index" title="Ars Technica" text="Ars Technica" htmlUrl="https://arstechnica.com/"/>
+<outline type="rss" xmlUrl="https://www.technologyreview.com/feed/" title="MIT Technology Review" text="MIT Technology Review" htmlUrl="https://www.technologyreview.com/"/>
+<outline type="rss" xmlUrl="https://www.solidot.org/index.rss" title="Solidot 奇客" text="Solidot 奇客" htmlUrl="https://www.solidot.org/"/>
+<outline type="rss" xmlUrl="https://www.phoronix.com/rss.php" title="Phoronix" text="Phoronix" htmlUrl="https://www.phoronix.com/"/>
+<outline type="rss" xmlUrl="https://www.qbitai.com/feed" title="量子位 QbitAI" text="量子位 QbitAI" htmlUrl="https://www.qbitai.com/"/>
+<outline type="rss" xmlUrl="https://www.trendforce.cn/feed/Semiconductors.html" title="TrendForce CN Semiconductor" text="TrendForce CN Semiconductor" htmlUrl="https://www.trendforce.cn/"/>
+<outline type="rss" xmlUrl="https://www.jiqizhixin.com/rss.php" title="机器之心 RSS.php" text="机器之心 RSS.php" htmlUrl="https://www.jiqizhixin.com/"/>
+<outline type="rss" xmlUrl="https://www.trendforce.com/feed/Semiconductors.html" title="TrendForce Semiconductor" text="TrendForce Semiconductor" htmlUrl="https://www.trendforce.com/"/>
 </body>
 </opml>

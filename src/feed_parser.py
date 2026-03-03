@@ -161,12 +161,21 @@ async def fetch_feed(
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(feed_url, timeout=aiohttp.ClientTimeout(total=timeout)) as response:
-                content = await response.text()
+                if response.status >= 400:
+                    return {
+                        "name": feed_name,
+                        "status": "error",
+                        "posts": [],
+                        "error_message": f"HTTP {response.status}",
+                        "site_url": html_url
+                    }
+                content = await response.read()
 
-        # Parse feed content
+        # Parse feed content from raw bytes for better encoding handling
         feed = feedparser.parse(content)
 
-        if feed.bozo:  # feedparser sets bozo=1 for malformed feeds
+        # bozo often means malformed XML, but many feeds still provide usable entries.
+        if feed.bozo and not feed.entries:
             return {
                 "name": feed_name,
                 "status": "error",
@@ -174,6 +183,9 @@ async def fetch_feed(
                 "error_message": f"Invalid feed format: {feed.bozo_exception}",
                 "site_url": html_url
             }
+
+        if feed.bozo:
+            logger.warning(f"{feed_name}: bozo feed parsed with entries, continue - {feed.bozo_exception}")
 
         # Extract site URL from feed metadata
         site_url = feed.feed.get("link", "") if hasattr(feed, "feed") else ""
@@ -189,7 +201,7 @@ async def fetch_feed(
                 excerpt = ""
                 if hasattr(entry, "summary"):
                     excerpt = entry.summary
-                elif hasattr(entry, "content"):
+                elif hasattr(entry, "content") and entry.content:
                     excerpt = entry.content[0].value
 
                 # Strip HTML tags and truncate
@@ -198,10 +210,12 @@ async def fetch_feed(
                 if len(excerpt) > 300:
                     excerpt = excerpt[:300] + "..."
 
-                if matches_keywords(entry.title, excerpt, keywords):
+                title = getattr(entry, "title", "(No title)")
+                link = getattr(entry, "link", "")
+                if matches_keywords(title, excerpt, keywords):
                     yesterday_posts.append({
-                        "title": entry.title,
-                        "link": entry.link,
+                        "title": title,
+                        "link": link,
                         "excerpt": excerpt
                     })
 

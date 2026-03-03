@@ -31,4 +31,5 @@ jobs:
           SMTP_SECURITY: ${{ secrets.SMTP_SECURITY }}
           RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
           TOPIC_KEYWORDS: ${{ secrets.TOPIC_KEYWORDS }}
+          ENABLE_TRANSLATION: ${{ secrets.ENABLE_TRANSLATION }}
         run: python src/main.py

@@ -45,6 +45,7 @@ Add the following secrets:
 | `SMTP_SECURITY` | Optional SMTP encryption mode: `auto`, `ssl`, `starttls`, `none` | `ssl` |
 | `RECIPIENT_EMAIL` | One or more emails to receive digest (comma-separated) | `a@example.com,b@example.com` |
 | `TOPIC_KEYWORDS` | Optional keyword list for topic filtering (comma-separated) | `AI,芯片,半导体,NVIDIA` |
+| `ENABLE_TRANSLATION` | Optional: translate non-Chinese title/excerpt to Chinese (`true`/`false`) | `true` |
 
 #### Gmail Setup
 
@@ -78,6 +79,7 @@ export SMTP_USER=your@email.com
 export SMTP_PASSWORD=your-app-password
 export SMTP_SECURITY=auto
 export RECIPIENT_EMAIL=recipient@email.com
+export ENABLE_TRANSLATION=true
 
 # Run the script
 python src/main.py
@@ -144,7 +146,9 @@ Ensure `feeds.opml` exists in the repository root.
 
 ### Feed errors in email
 
-Some feeds may timeout or have invalid XML. These are reported in the email summary section. Consider removing consistently failing feeds.
+Some feeds may timeout or return malformed XML intermittently. These are reported in the email summary section.
+
+Tip: do not delete a feed after one failure. Remove it only if it fails consistently for several days and also fails when tested manually with `python -m src.test_feed "<feed_url>" --latest`.
 
 ### GitHub Actions workflow not running
 

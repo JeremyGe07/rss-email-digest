@@ -8,6 +8,7 @@ from email.utils import getaddresses
 
 from feed_parser import parse_opml, fetch_all_feeds, DEFAULT_AI_SEMICONDUCTOR_KEYWORDS
 from email_generator import create_email_message, send_email
+from translator import translate_feed_results
 
 
 logging.basicConfig(
@@ -40,6 +41,7 @@ async def main():
     smtp_security = os.getenv("SMTP_SECURITY", "auto")
     keywords_env = os.getenv("TOPIC_KEYWORDS", "")
     keywords = [k.strip() for k in keywords_env.split(",") if k.strip()] or DEFAULT_AI_SEMICONDUCTOR_KEYWORDS
+    enable_translation = os.getenv("ENABLE_TRANSLATION", "true").strip().lower() in {"1", "true", "yes", "on"}
 
     recipient_list = [email for _, email in getaddresses([recipient_email]) if email]
     if not recipient_list:
@@ -62,6 +64,10 @@ async def main():
 
         # Fetch all feeds
         feed_results = await fetch_all_feeds(feeds, batch_size=10, timeout=15, keywords=keywords)
+
+        if enable_translation:
+            logger.info("Translating non-Chinese titles/excerpts to Chinese (best-effort)...")
+            feed_results = translate_feed_results(feed_results)
 
         # Create and send email
         logger.info("Generating email...")
