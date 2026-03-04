@@ -25,7 +25,6 @@
 <outline type="rss" xmlUrl="https://www.eetimes.com/feed/" title="EE Times" text="EE Times" htmlUrl="https://www.eetimes.com"/>
 <outline type="rss" xmlUrl="https://semiwiki.com/feed" title="SemiWiki" text="SemiWiki" htmlUrl="https://semiwiki.com"/>
 <outline type="rss" xmlUrl="https://developer.nvidia.cn/zh-cn/blog/feed" title="NVIDIA Developer Blog 中文" text="NVIDIA Developer Blog 中文" htmlUrl="https://developer.nvidia.cn/zh-cn/blog"/>
-<outline type="rss" xmlUrl="https://www.st.com.cn/etc/st-search-cx/rss/zh/press-rss.xml" title="ST Press Releases 中文" text="ST Press Releases 中文" htmlUrl="https://www.st.com.cn/content/st_com/zh.html"/>
 <outline type="rss" xmlUrl="https://blogs.nvidia.cn/feed/" title="NVIDIA 英伟达博客" text="NVIDIA 英伟达博客" htmlUrl="https://blogs.nvidia.cn/"/>
 <outline type="rss" xmlUrl="https://blogs.nvidia.cn/blog/category/news/feed/" title="NVIDIA News 分类" text="NVIDIA News 分类" htmlUrl="https://blogs.nvidia.cn/blog/category/news/"/>
 <outline type="rss" xmlUrl="https://www.technologyreview.com/feed/" title="MIT Technology Review" text="MIT Technology Review" htmlUrl="https://www.technologyreview.com/"/>
