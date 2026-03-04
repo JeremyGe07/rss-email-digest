@@ -362,6 +362,7 @@ async def fetch_feed(
                     "title": title,
                     "link": link,
                     "excerpt": excerpt,
+                    "_dedupe_scope": "window",
                 })
 
         missing_ratio = (missing_date / total_entries) if total_entries else 0.0
@@ -384,6 +385,7 @@ async def fetch_feed(
                     topic_hits += 1
                 if keyword_matched and topic_matched:
                     fallback_kept += 1
+                    post["_dedupe_scope"] = "fallback_missing_date"
                     window_posts.append(post)
 
         status = "success" if window_posts else "no_updates"

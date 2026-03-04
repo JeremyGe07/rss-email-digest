@@ -46,7 +46,17 @@ def _prune_seen_posts(seen: dict, ttl_days: int) -> dict:
         except Exception:
             continue
     return pruned
-def _filter_seen_posts(feed_results: list, seen: dict) -> tuple[list, int, int]:
+def _should_dedupe_post(post: dict, dedupe_mode: str) -> bool:
+    mode = (dedupe_mode or "fallback_only").strip().lower()
+    if mode in {"off", "disabled", "none", "0", "false"}:
+        return False
+    if mode == "all":
+        return True
+    # default: only dedupe posts from missing-date fallback path
+    return post.get("_dedupe_scope") == "fallback_missing_date"
+
+
+def _filter_seen_posts(feed_results: list, seen: dict, dedupe_mode: str = "fallback_only") -> tuple[list, int, int]:
     total_before = 0
     removed = 0
     for feed in feed_results:
@@ -55,7 +65,7 @@ def _filter_seen_posts(feed_results: list, seen: dict) -> tuple[list, int, int]:
         fresh_posts = []
         for post in posts:
             fp = _post_fingerprint(feed.get("name", ""), post)
-            if fp in seen:
+            if _should_dedupe_post(post, dedupe_mode) and fp in seen:
                 removed += 1
                 continue
             fresh_posts.append(post)
@@ -63,11 +73,12 @@ def _filter_seen_posts(feed_results: list, seen: dict) -> tuple[list, int, int]:
         if feed.get("status") == "success" and not fresh_posts:
             feed["status"] = "no_updates"
     return feed_results, total_before, removed
-def _update_seen_posts(feed_results: list, seen: dict) -> dict:
+def _update_seen_posts(feed_results: list, seen: dict, dedupe_mode: str = "fallback_only") -> dict:
     now_iso = datetime.now(timezone.utc).isoformat()
     for feed in feed_results:
         for post in feed.get("posts", []):
-            seen[_post_fingerprint(feed.get("name", ""), post)] = now_iso
+            if _should_dedupe_post(post, dedupe_mode):
+                seen[_post_fingerprint(feed.get("name", ""), post)] = now_iso
     return seen
 def _save_seen_posts(path: Path, seen: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -111,6 +122,7 @@ async def main():
         logger.error(f"MISSING_DATE_FALLBACK_LATEST_N must be a valid integer, got: {os.getenv('MISSING_DATE_FALLBACK_LATEST_N')}")
         sys.exit(1)
     seen_posts_file = Path(os.getenv("SEEN_POSTS_FILE", ".cache/rss-seen-posts.json"))
+    dedupe_mode = os.getenv("DEDUPE_MODE", "fallback_only")
     try:
         seen_posts_ttl_days = int(os.getenv("SEEN_POSTS_TTL_DAYS", "30"))
     except (ValueError, TypeError):
@@ -143,7 +155,7 @@ async def main():
             missing_date_fallback_latest_n=missing_date_fallback_latest_n,
         )
         seen_posts = _prune_seen_posts(_load_seen_posts(seen_posts_file), seen_posts_ttl_days)
-        feed_results, total_before_dedupe, removed_as_seen = _filter_seen_posts(feed_results, seen_posts)
+        feed_results, total_before_dedupe, removed_as_seen = _filter_seen_posts(feed_results, seen_posts, dedupe_mode=dedupe_mode)
         if removed_as_seen:
             logger.info(
                 "Deduplicated already-sent posts: removed=%d, remaining=%d",
@@ -169,7 +181,7 @@ async def main():
             smtp_password=smtp_password,
             smtp_security=smtp_security
         )
-        seen_posts = _update_seen_posts(feed_results, seen_posts)
+        seen_posts = _update_seen_posts(feed_results, seen_posts, dedupe_mode=dedupe_mode)
         _save_seen_posts(seen_posts_file, seen_posts)
         logger.info("RSS digest sent successfully!")
     except Exception as e:

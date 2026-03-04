@@ -35,9 +35,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: .cache/rss-seen-posts.json
-          key: rss-seen-posts-${{ github.repository }}
+          key: rss-seen-posts-${{ github.repository }}-${{ github.workflow }}
           restore-keys: |
-            rss-seen-posts-${{ github.repository }}-
+            rss-seen-posts-${{ github.repository }}-${{ github.workflow }}-
             rss-seen-posts-
 
       - name: Run RSS digest
@@ -55,6 +55,7 @@ jobs:
           MISSING_DATE_FALLBACK_LATEST_N: ${{ secrets.MISSING_DATE_FALLBACK_LATEST_N }}
           SEEN_POSTS_FILE: .cache/rss-seen-posts.json
           SEEN_POSTS_TTL_DAYS: 30
+          DEDUPE_MODE: fallback_only
         run: python -m src.main
 
       - name: Save seen posts cache
@@ -62,4 +63,4 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: .cache/rss-seen-posts.json
-          key: rss-seen-posts-${{ github.repository }}-${{ github.run_id }}
+          key: rss-seen-posts-${{ github.repository }}-${{ github.workflow }}-${{ github.run_id }}
