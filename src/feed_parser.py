@@ -63,6 +63,9 @@ DEFAULT_TOPIC_FILTER = {
         "earbuds", "camera", "smartwatch", "laptop", "headphone",
         # 英文强排除词：泛应用/产品经理类
         "plugin", "workflow", "productivity",
+        # 消费电子/移动端噪音
+        "android", "ios", "airtag", "luggage", "smart home", "wearable",
+        "launch event", "price", "discount",
     ],
 }
 
