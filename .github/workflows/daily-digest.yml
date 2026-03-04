@@ -32,4 +32,5 @@ jobs:
           RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
           TOPIC_KEYWORDS: ${{ secrets.TOPIC_KEYWORDS }}
           ENABLE_TRANSLATION: ${{ secrets.ENABLE_TRANSLATION }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python src/main.py
