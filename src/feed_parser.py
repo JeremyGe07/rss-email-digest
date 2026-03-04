@@ -25,13 +25,13 @@ DEFAULT_FETCH_USER_AGENT = (
 
 
 DEFAULT_AI_SEMICONDUCTOR_KEYWORDS = [
-    "AI芯片", "AI 晶片", "加速卡", "AI加速卡", "训练卡", "推理卡", "算力卡", "智算卡",
+    "AI芯片", "晶片", "加速卡", "AI加速卡", "训练卡", "推理卡", "算力卡", "智算卡", "计算卡", "架构", “加速器”
     "GPU", "NPU", "LPU", "data center gpu", "accelerator", "AI accelerator", "ASIC", "TPU", "DPU", "XPU",
     "H100", "H200", "B200", "GB200", "Blackwell", "Hopper", "MI300", "Gaudi", "Trainium", "Inferentia",
     "国产GPU", "摩尔线程", "壁仞", "天数智芯", "沐曦", "景嘉微", "寒武纪", "昆仑芯", "昇腾", "海光",
     "龙芯", "兆芯", "飞腾", "鲲鹏", "HBM", "HBM2e", "HBM3", "HBM3E", "CoWoS", "SoIC", "InFO",
     "Foveros", "EMIB", "Chiplet", "UCIe", "2.5D", "3D封装", "TSV", "interposer", "先进封装", "NVLink",
-    "InfiniBand", "RoCE", "CXL", "PCIe 6.0", "PCIe 5.0", "800G", "硅光", "光模块", "液冷", "浸没式",
+    "InfiniBand", "RoCE", "CXL", "PCIe 6.0", "PCIe 5.0", "800G", "硅光", "光模块", "液冷",
 ]
 
 DEFAULT_TOPIC_FILTER = {
@@ -41,7 +41,7 @@ DEFAULT_TOPIC_FILTER = {
     "weights": {"strong": 6, "medium": 2, "weak": 1},
     "strong": DEFAULT_AI_SEMICONDUCTOR_KEYWORDS,
     "medium": [
-        "台积电", "TSMC", "三星代工", "Intel Foundry", "foundry", "先进制程", "EUV", "High-NA", "3nm", "2nm",
+        "台积电", "TSMC", "三星代工", "Intel Foundry", "foundry", "制程", "EUV", "High-NA", "3nm", "2nm",
         "GAA", "背面供电", "良率", "tape-out", "流片", "掩膜", "光刻胶", "EDA", "Synopsys", "Cadence",
         "Siemens EDA", "DRC", "LVS", "PDK", "封装产能", "CoWoS产能", "HBM产能", "ABF", "inference",
         "training", "推理", "训练", "数据中心", "AI 服务器", "训练集群", "推理集群",
