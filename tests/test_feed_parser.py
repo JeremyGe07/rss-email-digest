@@ -157,3 +157,8 @@ def test_is_in_recent_window_excludes_older_than_window():
     old = datetime(2026, 3, 2, 22, 0, 0, tzinfo=timezone.utc)
 
     assert is_in_recent_window(old, window_hours=24, now=now) is False
+
+
+def test_matches_keywords_allows_common_model_suffixes():
+    assert matches_keywords("HBM4 bandwidth target", "", ["HBM"]) is True
+    assert matches_keywords("PCIe5 ecosystem", "", ["PCIe"]) is True

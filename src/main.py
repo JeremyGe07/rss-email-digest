@@ -16,6 +16,22 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+
+def _build_keywords(keywords_env: str, keywords_mode: str) -> tuple[list, list]:
+    custom_keywords = [k.strip() for k in (keywords_env or "").split(",") if k.strip()]
+    mode = (keywords_mode or "append").strip().lower()
+
+    if custom_keywords:
+        if mode == "replace":
+            keywords = custom_keywords
+        else:
+            keywords = list(dict.fromkeys(DEFAULT_AI_SEMICONDUCTOR_KEYWORDS + custom_keywords))
+    else:
+        keywords = DEFAULT_AI_SEMICONDUCTOR_KEYWORDS
+
+    return keywords, custom_keywords
+
 def _post_fingerprint(feed_name: str, post: dict) -> str:
     link = (post.get("link") or "").strip()
     if link:
@@ -103,7 +119,8 @@ async def main():
     recipient_email = os.getenv("RECIPIENT_EMAIL")
     smtp_security = os.getenv("SMTP_SECURITY", "auto")
     keywords_env = os.getenv("TOPIC_KEYWORDS", "")
-    keywords = [k.strip() for k in keywords_env.split(",") if k.strip()] or DEFAULT_AI_SEMICONDUCTOR_KEYWORDS
+    keywords_mode = os.getenv("TOPIC_KEYWORDS_MODE", "append")
+    keywords, custom_keywords = _build_keywords(keywords_env, keywords_mode)
     enable_translation = os.getenv("ENABLE_TRANSLATION", "true").strip().lower() in {"1", "true", "yes", "on"}
     try:
         filter_window_hours = int(os.getenv("FILTER_WINDOW_HOURS", "24"))

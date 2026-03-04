@@ -93,9 +93,10 @@ def _keyword_to_regex(keyword: str) -> re.Pattern:
     norm_keyword = _normalize_text_for_matching(keyword)
     escaped = re.escape(norm_keyword)
 
-    # For alnum/ASCII-ish terms use boundaries; for CJK, plain substring is usually better.
+    # For ASCII-ish terms use letter boundaries; for CJK, plain substring is usually better.
+    # This allows model suffixes like HBM4 / PCIe5 while still avoiding CUP->NPU false positives.
     if re.fullmatch(r"[a-z0-9. ]+", norm_keyword):
-        pattern = rf"(?<![a-z0-9]){escaped}(?![a-z0-9])"
+        pattern = rf"(?<![a-z]){escaped}(?![a-z])"
     else:
         pattern = escaped
 

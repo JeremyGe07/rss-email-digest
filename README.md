@@ -46,6 +46,7 @@ Add the following secrets:
 | `RECIPIENT_EMAIL` | Production recipient emails (comma-separated) | `a@example.com,b@example.com` |
 | `TEST_RECIPIENT_EMAIL` | Test recipient emails for manual runs (comma-separated) | `me@example.com` |
 | `TOPIC_KEYWORDS` | Optional keyword list for topic filtering (comma-separated) | `AI,芯片,半导体,NVIDIA` |
+| `TOPIC_KEYWORDS_MODE` | Optional: `append` (default, add to built-in keywords) or `replace` (use only custom keywords) | `append` |
 | `ENABLE_TRANSLATION` | Optional: translate non-Chinese post title/excerpt to Chinese (`true`/`false`); Chinese feed sources are skipped | `true` |
 | `GEMINI_API_KEY` | Optional: Gemini API key, enables Gemini translation provider (recommended) | `AIza...` |
 | `GEMINI_TRANSLATION_MODEL` | Optional: Gemini model name for translation | `gemini-3-flash-preview` |
@@ -154,6 +155,7 @@ Each feed now logs metrics like:
 - `fallback_considered` / `fallback_kept`: when a feed lacks dates heavily, the latest no-date entries checked/kept
 
 If `window candidates=0`, that usually means the feed returned only old items, or date fields are missing/unparseable for that run.
+If `window candidates>0` but `keyword_hits=0`, check whether custom `TOPIC_KEYWORDS` are too narrow; prefer `TOPIC_KEYWORDS_MODE=append` to keep built-in chip keywords.
 If `entries=0`, the endpoint was reachable but provided no parseable items (sometimes due to anti-bot or non-RSS responses). Check `final_url` and `content_type` in logs.
 To avoid repeatedly sending the same no-date items, sent posts are deduplicated across runs via `.cache/rss-seen-posts.json` (persisted in Actions cache). By default, dedupe applies only to missing-date fallback posts (`DEDUPE_MODE=fallback_only`), so normal fresh-window posts are not suppressed.
 
