@@ -22,7 +22,7 @@ class TranslatorClient(Protocol):
 class GeminiTranslator:
     """Gemini-backed translator using google-genai."""
 
-    def __init__(self, model: str = "gemini-2.5-flash") -> None:
+    def __init__(self, model: str = "gemini-3-flash-preview") -> None:
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise ValueError("GEMINI_API_KEY is required for Gemini translation")
@@ -59,7 +59,7 @@ def build_translator(target_lang: str = "zh-CN") -> TranslatorClient:
     """Build translator client, preferring Gemini when available."""
     if os.getenv("GEMINI_API_KEY"):
         try:
-            model = os.getenv("GEMINI_TRANSLATION_MODEL", "gemini-2.5-flash")
+            model = os.getenv("GEMINI_TRANSLATION_MODEL", "gemini-3-flash-preview")
             logger.info("Using Gemini translator model: %s", model)
             return GeminiTranslator(model=model)
         except Exception as e:

@@ -47,7 +47,7 @@ Add the following secrets:
 | `TOPIC_KEYWORDS` | Optional keyword list for topic filtering (comma-separated) | `AI,芯片,半导体,NVIDIA` |
 | `ENABLE_TRANSLATION` | Optional: translate non-Chinese feed name/title/excerpt to Chinese (`true`/`false`) | `true` |
 | `GEMINI_API_KEY` | Optional: Gemini API key, enables Gemini translation provider (recommended) | `AIza...` |
-| `GEMINI_TRANSLATION_MODEL` | Optional: Gemini model name for translation | `gemini-2.5-flash` |
+| `GEMINI_TRANSLATION_MODEL` | Optional: Gemini model name for translation | `gemini-3-flash-preview` |
 
 #### Gmail Setup
 
@@ -83,7 +83,7 @@ export SMTP_SECURITY=auto
 export RECIPIENT_EMAIL=recipient@email.com
 export ENABLE_TRANSLATION=true
 export GEMINI_API_KEY=your-gemini-api-key
-export GEMINI_TRANSLATION_MODEL=gemini-2.5-flash
+export GEMINI_TRANSLATION_MODEL=gemini-3-flash-preview
 
 # Run the script
 python src/main.py
