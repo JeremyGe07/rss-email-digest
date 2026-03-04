@@ -110,6 +110,14 @@ def translate_feed_results(feed_results: List[Dict], target_lang: str = "zh-CN")
     cache: Dict[str, str] = {}
 
     for feed in feed_results:
+        try:
+            feed_name = feed.get("name", "")
+            translated_name = maybe_translate_text(feed_name, translator, cache)
+            if translated_name and translated_name != feed_name:
+                feed["name"] = translated_name
+        except Exception as e:
+            logger.warning("Translation skipped for feed name due to error: %s", e)
+
         for post in feed.get("posts", []):
             try:
                 original_title = post.get("title", "")
