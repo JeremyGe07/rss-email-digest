@@ -34,9 +34,13 @@ class GeminiTranslator:
 
     def translate(self, text: str) -> str:
         prompt = (
-            "请将以下文本翻译成简体中文。"
-            "仅输出译文，不要添加解释、前后缀或原文。\n\n"
-            f"文本:\n{text}"
+            "你是一名专业科技编辑，请将下面内容翻译成简体中文。\n"
+            "要求：\n"
+            "1) 仅输出译文，不要输出解释、注释、原文或引号；\n"
+            "2) 保留产品名、公司名、芯片型号（如 M5 Pro、Xe3、OpenVINO）等专有名词；\n"
+            "3) 保留原有事实，不补充未出现的信息；\n"
+            "4) 语气自然、简洁，适合新闻邮件阅读。\n\n"
+            f"原文：\n{text}"
         )
         response = self.client.models.generate_content(model=self.model, contents=prompt)
         translated = (response.text or "").strip()
@@ -57,13 +61,20 @@ class DeepTranslatorAdapter:
 
 def build_translator(target_lang: str = "zh-CN") -> TranslatorClient:
     """Build translator client, preferring Gemini when available."""
-    if os.getenv("GEMINI_API_KEY"):
+    api_key = os.getenv("GEMINI_API_KEY")
+    if api_key:
         try:
             model = os.getenv("GEMINI_TRANSLATION_MODEL", "gemini-3-flash-preview")
             logger.info("Using Gemini translator model: %s", model)
             return GeminiTranslator(model=model)
         except Exception as e:
-            logger.warning("Gemini translator unavailable, falling back to deep-translator: %s", e)
+            logger.warning(
+                "Gemini translator unavailable (%s: %s), falling back to deep-translator",
+                type(e).__name__,
+                e,
+            )
+    else:
+        logger.info("GEMINI_API_KEY not set, using deep-translator fallback")
 
     logger.info("Using deep-translator fallback")
     return DeepTranslatorAdapter(target_lang=target_lang)
@@ -94,7 +105,7 @@ def maybe_translate_text(
 
 
 def translate_feed_results(feed_results: List[Dict], target_lang: str = "zh-CN") -> List[Dict]:
-    """Translate feed name, post title, and excerpt fields in feed results."""
+    """Translate post title/excerpt fields in feed results."""
     translator = build_translator(target_lang=target_lang)
     cache: Dict[str, str] = {}
 

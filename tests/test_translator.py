@@ -8,7 +8,6 @@ class FakeTranslator:
     def translate(self, text: str) -> str:
         self.calls.append(text)
         mapping = {
-            "Ars Technica": "Ars 科技",
             "New Apple Chip": "苹果新芯片",
             "Big performance jump": "性能大幅提升",
         }
@@ -33,7 +32,7 @@ def test_translate_feed_results_replaces_with_chinese(monkeypatch):
 
     translated = translator.translate_feed_results(feed_results)
 
-    assert translated[0]["name"] == "Ars 科技"
+    assert translated[0]["name"] == "Ars Technica"
     assert translated[0]["posts"][0]["title"] == "苹果新芯片"
     assert translated[0]["posts"][0]["excerpt"] == "性能大幅提升"
 
@@ -45,8 +44,8 @@ def test_maybe_translate_text_uses_cache():
     first = translator.maybe_translate_text("Ars Technica", fake, cache)
     second = translator.maybe_translate_text("Ars Technica", fake, cache)
 
-    assert first == "Ars 科技"
-    assert second == "Ars 科技"
+    assert first == "翻译:Ars Technica"
+    assert second == "翻译:Ars Technica"
     assert fake.calls == ["Ars Technica"]
 
 
