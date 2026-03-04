@@ -36,12 +36,33 @@ DEFAULT_TOPIC_FILTER = {
         "GAA", "背面供电", "良率", "tape-out", "流片", "掩膜", "光刻胶", "EDA", "Synopsys", "Cadence",
         "Siemens EDA", "DRC", "LVS", "PDK", "封装产能", "CoWoS产能", "HBM产能", "ABF", "inference",
         "training", "推理", "训练", "数据中心", "AI 服务器", "训练集群", "推理集群",
+        # 存储/内存
+        "存储", "内存", "闪存", "固态", "SSD", "DRAM", "NAND", "NOR", "eMMC", "UFS",
+        "memory", "storage", "flash", "ssd", "dram", "nand", "nor",
+        # 晶圆/制造/光刻/材料
+        "晶圆", "wafer", "wafer fab", "fab",
+        "光刻", "光刻机", "lithography", "scanner",
+        "掩膜", "mask", "mask shop",
+        "刻蚀", "etch", "etching",
+        "沉积", "deposition", "CVD", "PVD",
+        "CMP", "良率", "yield",
+        "封测", "OSAT",
+        # 供应侧更具体（替代“供应链”）
+        "交付", "缺货", "供给", "扩产", "产能", "lead time", "shortage", "capacity", "ramp",
     ],
     "weak": ["CUDA", "ROCm", "oneAPI", "TensorRT", "OpenXLA", "编译器", "驱动"],
     "exclude": [
         "提示词", "prompt", "教程", "使用技巧", "上手", "AI绘画", "AIGC", "文生图", "视频生成", "聊天机器人",
         "应用", "插件", "工作流", "手机", "平板", "耳机", "相机", "手表", "家电", "评测", "开箱", "跑分",
         "游戏", "电竞", "车机", "智驾", "自动驾驶",
+        # 英文强排除词：泛 AI 内容
+        "prompting", "prompt engineer", "prompt engineering", "how to", "tutorial", "guide", "walkthrough",
+        "tips", "tricks", "ai tool", "ai tools",
+        # 英文强排除词：消费硬件水文
+        "review", "hands-on", "unboxing", "benchmark", "fps", "gaming", "smartphone", "phone", "tablet",
+        "earbuds", "camera", "smartwatch", "laptop", "headphone",
+        # 英文强排除词：泛应用/产品经理类
+        "plugin", "workflow", "productivity",
     ],
 }
 

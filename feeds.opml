@@ -8,7 +8,6 @@
 <outline type="rss" xmlUrl="https://www.icsmart.cn/feed/" title="ICsmart" text="ICsmart" htmlUrl="https://www.icsmart.cn"/>
 <outline type="rss" xmlUrl="https://www.ithome.com/rss/" title="IT之家" text="IT之家" htmlUrl="https://www.ithome.com"/>
 <outline type="rss" xmlUrl="https://www.expreview.com/rss.php" title="超能网 Expreview" text="超能网 Expreview" htmlUrl="https://www.expreview.com"/>
-<outline type="rss" xmlUrl="https://www.jiqizhixin.com/rss" title="机器之心" text="机器之心" htmlUrl="https://www.jiqizhixin.com"/>
 <outline type="rss" xmlUrl="https://www.ruanyifeng.com/blog/atom.xml" title="阮一峰的网络日志" text="阮一峰的网络日志" htmlUrl="https://www.ruanyifeng.com/blog/"/>
 <outline type="rss" xmlUrl="https://iccircle.com/feed" title="IC技术圈" text="IC技术圈" htmlUrl="https://iccircle.com"/>
 <outline type="rss" xmlUrl="https://www.synopsys.com/snps/blogs/chip-design.en-us.xml" title="Synopsys Chip Design Blog" text="Synopsys Chip Design Blog" htmlUrl="https://www.synopsys.com/snps/blogs/chip-design.html"/>
@@ -37,13 +36,22 @@
 <outline type="rss" xmlUrl="https://www.solidot.org/index.rss" title="Solidot 奇客" text="Solidot 奇客" htmlUrl="https://www.solidot.org/"/>
 <outline type="rss" xmlUrl="https://www.phoronix.com/rss.php" title="Phoronix" text="Phoronix" htmlUrl="https://www.phoronix.com/"/>
 <outline type="rss" xmlUrl="https://www.qbitai.com/feed" title="量子位 QbitAI" text="量子位 QbitAI" htmlUrl="https://www.qbitai.com/"/>
+<outline type="rss" xmlUrl="https://wechat2rss.xlab.app/feed/51e92aad2728acdd1fda7314be32b16639353001.xml" title="机器之心（Wechat2RSS）" text="机器之心（Wechat2RSS）" htmlUrl="https://wechat2rss.xlab.app"/>
+<outline type="rss" xmlUrl="https://wechat2rss.xlab.app/feed/a1cd365aa14ed7d64cabfc8aa086da40ecaba34d.xml" title="夕小瑶科技说" text="夕小瑶科技说" htmlUrl="https://wechat2rss.xlab.app"/>
+<outline type="rss" xmlUrl="https://wechat2rss.xlab.app/feed/ede30346413ea70dbef5d485ea5cbb95cca446e7.xml" title="新智元" text="新智元" htmlUrl="https://wechat2rss.xlab.app"/>
+<outline type="rss" xmlUrl="https://wechat2rss.xlab.app/feed/6111a6d5ecf28cfdd4fc9b664244c05ddacef15c.xml" title="浅黑科技" text="浅黑科技" htmlUrl="https://wechat2rss.xlab.app"/>
+<outline type="rss" xmlUrl="https://wechat2rss.xlab.app/feed/31436fcc3bba8c2c2a9337a163afcb3b5a57a0a0.xml" title="42章经" text="42章经" htmlUrl="https://wechat2rss.xlab.app"/>
+<outline type="rss" xmlUrl="https://wechat2rss.xlab.app/feed/1a5aec98e71c707c8ca092bc2c255b9d4bac477d.xml" title="极客公园" text="极客公园" htmlUrl="https://wechat2rss.xlab.app"/>
 <outline type="rss" xmlUrl="https://www.trendforce.cn/feed/Semiconductors.html" title="TrendForce CN Semiconductor" text="TrendForce CN Semiconductor" htmlUrl="https://www.trendforce.cn/"/>
-<outline type="rss" xmlUrl="https://www.jiqizhixin.com/rss.php" title="机器之心 RSS.php" text="机器之心 RSS.php" htmlUrl="https://www.jiqizhixin.com/"/>
 <outline type="rss" xmlUrl="https://www.trendforce.com/feed/Semiconductors.html" title="TrendForce Semiconductor" text="TrendForce Semiconductor" htmlUrl="https://www.trendforce.com/"/>
 <outline type="rss" xmlUrl="https://rsshub.app/telegram/channel/ZaihuaNews" title="ZaihuaNews Telegram (RSSHub)" text="ZaihuaNews Telegram (RSSHub)" htmlUrl="https://t.me/ZaihuaNews"/>
 <outline type="rss" xmlUrl="https://cn.news.synopsys.com/releases?category=771&amp;pagetemplate=rss" title="Synopsys CN Releases 771" text="Synopsys CN Releases 771" htmlUrl="https://cn.news.synopsys.com/releases?category=771"/>
 <outline type="rss" xmlUrl="https://cn.news.synopsys.com/releases?category=776&amp;pagetemplate=rss" title="Synopsys CN Releases 776" text="Synopsys CN Releases 776" htmlUrl="https://cn.news.synopsys.com/releases?category=776"/>
 <outline type="rss" xmlUrl="https://technews.tw/feed/" title="TechNews 科技新報" text="TechNews 科技新報" htmlUrl="https://technews.tw"/>
 <outline type="rss" xmlUrl="https://cn.engadget.com/rss.xml" title="Engadget 中文版" text="Engadget 中文版" htmlUrl="https://cn.engadget.com"/>
+<outline type="rss" xmlUrl="https://rss.lilydjwg.me/zhihu/ban-dao-ti-chan-ye-zong-heng-30" title="半导体产业纵横" text="半导体产业纵横" htmlUrl="https://rss.lilydjwg.me"/>
+<outline type="rss" xmlUrl="https://www.eejournal.com/category/semiconductor/feed/" title="EEJournal » Semiconductor" text="EEJournal » Semiconductor" htmlUrl="https://www.eejournal.com/category/semiconductor/"/>
+<outline type="rss" xmlUrl="https://semianalysis.substack.com/feed" title="SemiAnalysis" text="SemiAnalysis" htmlUrl="https://semianalysis.substack.com"/>
+<outline type="rss" xmlUrl="https://semiengineering.com/feed" title="Semiconductor Engineering" text="Semiconductor Engineering" htmlUrl="https://semiengineering.com"/>
 </body>
 </opml>
