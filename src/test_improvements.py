@@ -82,3 +82,34 @@ async def test_http_error_returns_error_status(monkeypatch):
 def test_contains_cjk_detects_chinese_text():
     assert contains_cjk("英伟达发布新芯片")
     assert not contains_cjk("Nvidia launches new chip")
+
+
+@pytest.mark.asyncio
+async def test_missing_date_fallback_keeps_recent_no_date_posts(monkeypatch):
+    """When most entries have no date, fallback should inspect latest N no-date items."""
+
+    def fake_parse(_content):
+        entries = [
+            SimpleNamespace(title="HBM capacity update", link="https://example.com/1", summary="GPU and HBM3E demand"),
+            SimpleNamespace(title="Random lifestyle post", link="https://example.com/2", summary="travel and food"),
+            SimpleNamespace(title="Another random post", link="https://example.com/3", summary="music"),
+        ]
+        return SimpleNamespace(
+            bozo=False,
+            entries=entries,
+            feed={"link": "https://example.com"},
+        )
+
+    monkeypatch.setattr(feed_parser.aiohttp, "ClientSession", _FakeSession)
+    monkeypatch.setattr(feed_parser.feedparser, "parse", fake_parse)
+
+    result = await feed_parser.fetch_feed(
+        "NoDateFeed",
+        "https://example.com/rss",
+        missing_date_fallback_ratio=0.8,
+        missing_date_fallback_latest_n=2,
+    )
+
+    assert result["status"] == "success"
+    assert len(result["posts"]) == 1
+    assert result["posts"][0]["title"] == "HBM capacity update"

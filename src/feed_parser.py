@@ -220,6 +220,8 @@ async def fetch_feed(
     keywords: List[str] = None,
     window_hours: int = 24,
     naive_timezone: str = "Asia/Shanghai",
+    missing_date_fallback_ratio: float = 0.8,
+    missing_date_fallback_latest_n: int = 3,
 ) -> Dict:
     """
     Fetch RSS feed and extract yesterday's posts.
@@ -277,19 +279,38 @@ async def fetch_feed(
         missing_date = 0
         outside_window = 0
         future_date = 0
+        fallback_considered = 0
+        fallback_kept = 0
+        missing_date_entries = []
+
         now_utc = datetime.now(timezone.utc)
         cutoff_utc = now_utc - timedelta(hours=window_hours)
+
         for entry in feed.entries:
+            title = getattr(entry, "title", "(No title)")
+            link = getattr(entry, "link", "")
+
+            excerpt = ""
+            if hasattr(entry, "summary"):
+                excerpt = entry.summary
+            elif hasattr(entry, "content") and entry.content:
+                excerpt = entry.content[0].value
+            excerpt = re.sub(r'<[^>]+>', '', excerpt)
+            excerpt = excerpt.strip()
+            if len(excerpt) > 300:
+                excerpt = excerpt[:300] + "..."
+
             # Try published date first, fall back to updated
             pub_date = getattr(entry, "published_parsed", None) or getattr(entry, "updated_parsed", None)
-
             if not pub_date:
                 missing_date += 1
+                missing_date_entries.append({"title": title, "link": link, "excerpt": excerpt})
                 continue
 
             normalized_date = _normalize_entry_datetime(pub_date, naive_timezone=naive_timezone)
             if not normalized_date:
                 missing_date += 1
+                missing_date_entries.append({"title": title, "link": link, "excerpt": excerpt})
                 continue
 
             if normalized_date > now_utc:
@@ -301,22 +322,6 @@ async def fetch_feed(
                 continue
 
             window_candidates += 1
-
-            # Extract excerpt from summary or content
-            excerpt = ""
-            if hasattr(entry, "summary"):
-                excerpt = entry.summary
-            elif hasattr(entry, "content") and entry.content:
-                excerpt = entry.content[0].value
-
-            # Strip HTML tags and truncate
-            excerpt = re.sub(r'<[^>]+>', '', excerpt)
-            excerpt = excerpt.strip()
-            if len(excerpt) > 300:
-                excerpt = excerpt[:300] + "..."
-
-            title = getattr(entry, "title", "(No title)")
-            link = getattr(entry, "link", "")
 
             keyword_matched = matches_keywords(title, excerpt, keywords)
             topic_matched = matches_topic_filter(title, excerpt)
@@ -332,9 +337,31 @@ async def fetch_feed(
                     "excerpt": excerpt,
                 })
 
+        missing_ratio = (missing_date / total_entries) if total_entries else 0.0
+        should_use_missing_fallback = (
+            window_candidates == 0
+            and missing_date_entries
+            and missing_ratio >= missing_date_fallback_ratio
+            and missing_date_fallback_latest_n > 0
+        )
+
+        if should_use_missing_fallback:
+            fallback_slice = missing_date_entries[:missing_date_fallback_latest_n]
+            fallback_considered = len(fallback_slice)
+            for post in fallback_slice:
+                keyword_matched = matches_keywords(post["title"], post["excerpt"], keywords)
+                topic_matched = matches_topic_filter(post["title"], post["excerpt"])
+                if keyword_matched:
+                    keyword_hits += 1
+                if topic_matched:
+                    topic_hits += 1
+                if keyword_matched and topic_matched:
+                    fallback_kept += 1
+                    window_posts.append(post)
+
         status = "success" if window_posts else "no_updates"
         logger.info(
-            "%s: %d posts kept (entries=%d, window candidates=%d, missing_date=%d, outside_window=%d, future_date=%d, keyword_hits=%d, topic_hits=%d)",
+            "%s: %d posts kept (entries=%d, window candidates=%d, missing_date=%d, outside_window=%d, future_date=%d, fallback_considered=%d, fallback_kept=%d, keyword_hits=%d, topic_hits=%d)",
             feed_name,
             len(window_posts),
             total_entries,
@@ -342,6 +369,8 @@ async def fetch_feed(
             missing_date,
             outside_window,
             future_date,
+            fallback_considered,
+            fallback_kept,
             keyword_hits,
             topic_hits,
         )
@@ -380,6 +409,8 @@ async def fetch_all_feeds(
     keywords: List[str] = None,
     window_hours: int = 24,
     naive_timezone: str = "Asia/Shanghai",
+    missing_date_fallback_ratio: float = 0.8,
+    missing_date_fallback_latest_n: int = 3,
 ) -> List[Dict]:
     """
     Fetch multiple RSS feeds in parallel batches.
@@ -409,6 +440,8 @@ async def fetch_all_feeds(
                 keywords,
                 window_hours,
                 naive_timezone,
+                missing_date_fallback_ratio,
+                missing_date_fallback_latest_n,
             )
             for feed in batch
         ]
