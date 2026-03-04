@@ -22,6 +22,15 @@ jobs:
       - name: Install dependencies
         run: pip install -r src/requirements.txt
 
+      - name: Restore seen posts cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/rss-seen-posts.json
+          key: rss-seen-posts-${{ github.repository }}
+          restore-keys: |
+            rss-seen-posts-${{ github.repository }}-
+            rss-seen-posts-
+
       - name: Run RSS digest
         env:
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
@@ -32,4 +41,16 @@ jobs:
           RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
           TOPIC_KEYWORDS: ${{ secrets.TOPIC_KEYWORDS }}
           ENABLE_TRANSLATION: ${{ secrets.ENABLE_TRANSLATION }}
-        run: python src/main.py
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MISSING_DATE_FALLBACK_RATIO: ${{ secrets.MISSING_DATE_FALLBACK_RATIO }}
+          MISSING_DATE_FALLBACK_LATEST_N: ${{ secrets.MISSING_DATE_FALLBACK_LATEST_N }}
+          SEEN_POSTS_FILE: .cache/rss-seen-posts.json
+          SEEN_POSTS_TTL_DAYS: 30
+        run: python -m src.main
+
+      - name: Save seen posts cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/rss-seen-posts.json
+          key: rss-seen-posts-${{ github.repository }}-${{ github.run_id }}
