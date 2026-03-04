@@ -9,6 +9,7 @@ from src.feed_parser import (
     fetch_all_feeds,
     matches_topic_filter,
     matches_keywords,
+    is_in_recent_window,
 )
 
 
@@ -141,3 +142,18 @@ def test_matches_keywords_handles_hyphen_and_case_variants():
 def test_matches_keywords_respects_word_boundaries_for_ascii_terms():
     assert matches_keywords("New CUP design", "", ["NPU"]) is False
     assert matches_keywords("NPU performance improved", "", ["NPU"]) is True
+
+
+def test_is_in_recent_window_with_naive_datetime_uses_feed_timezone():
+    # Naive local time should be interpreted in Asia/Shanghai by default.
+    now = datetime(2026, 3, 4, 0, 0, 0, tzinfo=timezone.utc)
+    local_naive = datetime(2026, 3, 3, 23, 30, 0)
+
+    assert is_in_recent_window(local_naive, window_hours=24, now=now) is True
+
+
+def test_is_in_recent_window_excludes_older_than_window():
+    now = datetime(2026, 3, 4, 0, 0, 0, tzinfo=timezone.utc)
+    old = datetime(2026, 3, 2, 22, 0, 0, tzinfo=timezone.utc)
+
+    assert is_in_recent_window(old, window_hours=24, now=now) is False
