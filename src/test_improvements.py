@@ -9,6 +9,8 @@ from src.translator import contains_cjk
 
 class _FakeResponse:
     status = 200
+    headers = {"Content-Type": "application/rss+xml"}
+    url = "https://example.com/rss"
 
     async def read(self):
         return b"<rss></rss>"

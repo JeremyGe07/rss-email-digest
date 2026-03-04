@@ -54,6 +54,7 @@ Add the following secrets:
 | `MISSING_DATE_FALLBACK_RATIO` | Optional: if missing-date ratio in a feed exceeds this and window candidates are 0, fallback activates | `0.8` |
 | `MISSING_DATE_FALLBACK_LATEST_N` | Optional: when fallback activates, evaluate latest N no-date entries | `3` |
 | `SEEN_POSTS_TTL_DAYS` | Optional: keep sent-post dedupe fingerprints for this many days | `30` |
+| `RSS_FETCH_USER_AGENT` | Optional: HTTP User-Agent used when requesting feeds (helps with some anti-bot feed endpoints) | `Mozilla/... RSSDigestBot/1.0` |
 
 #### Gmail Setup
 
@@ -152,6 +153,7 @@ Each feed now logs metrics like:
 - `fallback_considered` / `fallback_kept`: when a feed lacks dates heavily, the latest no-date entries checked/kept
 
 If `window candidates=0`, that usually means the feed returned only old items, or date fields are missing/unparseable for that run.
+If `entries=0`, the endpoint was reachable but provided no parseable items (sometimes due to anti-bot or non-RSS responses). Check `final_url` and `content_type` in logs.
 To avoid repeatedly sending the same no-date items, sent posts are deduplicated across runs via `.cache/rss-seen-posts.json` (persisted in Actions cache).
 
 ### No email received

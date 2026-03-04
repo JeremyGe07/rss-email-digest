@@ -1,4 +1,5 @@
 """RSS feed parser module."""
+import os
 import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -14,6 +15,13 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+DEFAULT_FETCH_ACCEPT = "application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.8"
+DEFAULT_FETCH_USER_AGENT = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 RSSDigestBot/1.0"
+)
 
 
 DEFAULT_AI_SEMICONDUCTOR_KEYWORDS = [
@@ -239,8 +247,17 @@ async def fetch_feed(
         keywords = DEFAULT_AI_SEMICONDUCTOR_KEYWORDS
 
     try:
+        request_headers = {
+            "Accept": DEFAULT_FETCH_ACCEPT,
+            "User-Agent": os.getenv("RSS_FETCH_USER_AGENT", DEFAULT_FETCH_USER_AGENT),
+        }
+
         async with aiohttp.ClientSession() as session:
-            async with session.get(feed_url, timeout=aiohttp.ClientTimeout(total=timeout)) as response:
+            async with session.get(
+                feed_url,
+                timeout=aiohttp.ClientTimeout(total=timeout),
+                headers=request_headers,
+            ) as response:
                 if response.status >= 400:
                     return {
                         "name": feed_name,
@@ -249,6 +266,8 @@ async def fetch_feed(
                         "error_message": f"HTTP {response.status}",
                         "site_url": html_url
                     }
+                response_content_type = response.headers.get("Content-Type", "")
+                response_final_url = str(response.url)
                 content = await response.read()
 
         # Parse feed content from raw bytes for better encoding handling
@@ -270,12 +289,20 @@ async def fetch_feed(
         # Extract site URL from feed metadata
         site_url = feed.feed.get("link", "") if hasattr(feed, "feed") else ""
 
+        total_entries = len(feed.entries)
+        if total_entries == 0:
+            logger.info(
+                "%s: feed returned 0 entries (final_url=%s, content_type=%s)",
+                feed_name,
+                response_final_url,
+                response_content_type,
+            )
+
         # Filter for recent-window posts
         window_posts = []
         window_candidates = 0
         keyword_hits = 0
         topic_hits = 0
-        total_entries = len(feed.entries)
         missing_date = 0
         outside_window = 0
         future_date = 0
