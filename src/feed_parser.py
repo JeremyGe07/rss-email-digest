@@ -25,7 +25,7 @@ DEFAULT_FETCH_USER_AGENT = (
 
 
 DEFAULT_AI_SEMICONDUCTOR_KEYWORDS = [
-    "AI芯片", "晶片", "加速卡", "AI加速卡", "训练卡", "推理卡", "算力卡", "智算卡", "计算卡", "架构", “加速器”
+    "AI芯片", "晶片", "加速卡", "AI加速卡", "训练卡", "推理卡", "算力卡", "智算卡", "计算卡", "架构", "加速器",
     "GPU", "NPU", "LPU", "data center gpu", "accelerator", "AI accelerator", "ASIC", "TPU", "DPU", "XPU",
     "H100", "H200", "B200", "GB200", "Blackwell", "Hopper", "MI300", "Gaudi", "Trainium", "Inferentia",
     "国产GPU", "摩尔线程", "壁仞", "天数智芯", "沐曦", "景嘉微", "寒武纪", "昆仑芯", "昇腾", "海光",
