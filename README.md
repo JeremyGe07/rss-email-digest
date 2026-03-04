@@ -5,7 +5,7 @@ Automated daily email digest of RSS feed updates, powered by GitHub Actions.
 ## Features
 
 - Fetches 100-200 RSS feeds in parallel
-- Filters for posts published yesterday
+- Filters for posts published in a recent rolling window (default: last 24 hours)
 - Uses a strict AI-chip filter (HBM/advanced packaging/interconnect/data-center & domestic GPU/inference-training/AI servers), plus optional `TOPIC_KEYWORDS` include list
 - Sends formatted HTML + plain text email
 - **HTML entity decoding** - Special characters (curly quotes, em dashes, etc.) render correctly
@@ -48,6 +48,8 @@ Add the following secrets:
 | `ENABLE_TRANSLATION` | Optional: translate non-Chinese post title/excerpt to Chinese (`true`/`false`); Chinese feed sources are skipped | `true` |
 | `GEMINI_API_KEY` | Optional: Gemini API key, enables Gemini translation provider (recommended) | `AIza...` |
 | `GEMINI_TRANSLATION_MODEL` | Optional: Gemini model name for translation | `gemini-3-flash-preview` |
+| `FILTER_WINDOW_HOURS` | Optional: rolling time window (hours) for feed post filtering | `24` |
+| `FEED_DATE_TIMEZONE` | Optional: timezone used to interpret naive feed timestamps | `Asia/Shanghai` |
 
 #### Gmail Setup
 
@@ -100,7 +102,7 @@ python -m src.test_feed "https://example.com/feed.xml" --latest
 # Test for a specific date (useful for debugging date filters)
 python -m src.test_feed "https://example.com/feed.xml" --date 2025-11-11
 
-# Test with default filter (yesterday's posts only)
+# Test with default filter (recent window, default last 24h)
 python -m src.test_feed "https://example.com/feed.xml"
 ```
 
@@ -127,11 +129,23 @@ python -m src.test_feed "https://example.com/feed.xml"
 
 **Body:**
 - Feeds grouped alphabetically
-- Each feed shows posts from yesterday
+- Each feed shows posts from the recent window (default last 24 hours)
 - Post title (linked) + 300-character excerpt
 - Summary section with success/failure counts
 
 ## Troubleshooting
+
+### Understanding feed filter logs
+
+Each feed now logs metrics like:
+
+- `entries`: total items returned by RSS source
+- `window candidates`: items whose timestamps fall inside `FILTER_WINDOW_HOURS`
+- `missing_date`: items without parseable `published/updated` timestamp
+- `outside_window`: items older than the rolling window (or future-dated)
+- `future_date`: subset of outside-window items timestamped in the future
+
+If `window candidates=0`, that usually means the feed returned only old items, or date fields are missing/unparseable for that run.
 
 ### No email received
 

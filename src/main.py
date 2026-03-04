@@ -42,6 +42,12 @@ async def main():
     keywords_env = os.getenv("TOPIC_KEYWORDS", "")
     keywords = [k.strip() for k in keywords_env.split(",") if k.strip()] or DEFAULT_AI_SEMICONDUCTOR_KEYWORDS
     enable_translation = os.getenv("ENABLE_TRANSLATION", "true").strip().lower() in {"1", "true", "yes", "on"}
+    try:
+        filter_window_hours = int(os.getenv("FILTER_WINDOW_HOURS", "24"))
+    except (ValueError, TypeError):
+        logger.error(f"FILTER_WINDOW_HOURS must be a valid integer, got: {os.getenv('FILTER_WINDOW_HOURS')}")
+        sys.exit(1)
+    feed_date_timezone = os.getenv("FEED_DATE_TIMEZONE", "Asia/Shanghai")
 
     recipient_list = [email for _, email in getaddresses([recipient_email]) if email]
     if not recipient_list:
@@ -63,7 +69,14 @@ async def main():
         logger.info(f"Found {len(feeds)} feeds")
 
         # Fetch all feeds
-        feed_results = await fetch_all_feeds(feeds, batch_size=10, timeout=15, keywords=keywords)
+        feed_results = await fetch_all_feeds(
+            feeds,
+            batch_size=10,
+            timeout=15,
+            keywords=keywords,
+            window_hours=filter_window_hours,
+            naive_timezone=feed_date_timezone,
+        )
 
         if enable_translation:
             logger.info("Translating non-Chinese titles/excerpts to Chinese (best-effort)...")
