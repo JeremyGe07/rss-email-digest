@@ -43,7 +43,8 @@ Add the following secrets:
 | `SMTP_USER` | Your email address | `your@email.com` |
 | `SMTP_PASSWORD` | App-specific password | `abcd efgh ijkl mnop` |
 | `SMTP_SECURITY` | Optional SMTP encryption mode: `auto`, `ssl`, `starttls`, `none` | `ssl` |
-| `RECIPIENT_EMAIL` | One or more emails to receive digest (comma-separated) | `a@example.com,b@example.com` |
+| `RECIPIENT_EMAIL` | Production recipient emails (comma-separated) | `a@example.com,b@example.com` |
+| `TEST_RECIPIENT_EMAIL` | Test recipient emails for manual runs (comma-separated) | `me@example.com` |
 | `TOPIC_KEYWORDS` | Optional keyword list for topic filtering (comma-separated) | `AI,芯片,半导体,NVIDIA` |
 | `ENABLE_TRANSLATION` | Optional: translate non-Chinese post title/excerpt to Chinese (`true`/`false`); Chinese feed sources are skipped | `true` |
 | `GEMINI_API_KEY` | Optional: Gemini API key, enables Gemini translation provider (recommended) | `AIza...` |
@@ -64,7 +65,9 @@ Go to your repository → Actions tab → Enable workflows
 
 ### 5. Test the Workflow
 
-Go to Actions → Daily RSS Digest → Run workflow (manual trigger)
+Go to Actions → Daily RSS Digest → Run workflow (manual trigger), then set `recipient_mode=test` to send only to `TEST_RECIPIENT_EMAIL`.
+
+For normal daily delivery, keep `recipient_mode=prod` (default), which sends to `RECIPIENT_EMAIL`.
 
 Check the logs to verify it works correctly.
 
@@ -144,7 +147,7 @@ python -m src.test_feed "https://example.com/feed.xml"
 
 ### "Missing required environment variables"
 
-All five secrets must be configured in GitHub repository settings.
+The required SMTP + recipient secrets must be configured in GitHub repository settings. If you run with `recipient_mode=test`, make sure `TEST_RECIPIENT_EMAIL` is also set.
 
 ### "OPML file not found"
 

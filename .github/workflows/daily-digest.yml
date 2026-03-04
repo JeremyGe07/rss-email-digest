@@ -4,7 +4,16 @@ on:
   schedule:
     # Run at 08:00 Beijing time (00:00 UTC)
     - cron: '0 0 * * *'
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      recipient_mode:
+        description: 'Choose which recipient list to use (test or production)'
+        required: false
+        default: 'prod'
+        type: choice
+        options:
+          - prod
+          - test
 
 jobs:
   send-digest:
@@ -29,7 +38,7 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           SMTP_SECURITY: ${{ secrets.SMTP_SECURITY }}
-          RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+          RECIPIENT_EMAIL: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.recipient_mode == 'test') && secrets.TEST_RECIPIENT_EMAIL || secrets.RECIPIENT_EMAIL }}
           TOPIC_KEYWORDS: ${{ secrets.TOPIC_KEYWORDS }}
           ENABLE_TRANSLATION: ${{ secrets.ENABLE_TRANSLATION }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
