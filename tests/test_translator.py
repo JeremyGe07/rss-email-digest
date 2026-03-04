@@ -58,3 +58,26 @@ def test_maybe_translate_text_skips_cjk_text():
 
     assert result == text
     assert fake.calls == []
+
+
+def test_translate_feed_results_skips_chinese_feed(monkeypatch):
+    fake = FakeTranslator()
+    monkeypatch.setattr(translator, "build_translator", lambda target_lang="zh-CN": fake)
+
+    feed_results = [
+        {
+            "name": "量子位 QbitAI",
+            "posts": [
+                {
+                    "title": "New Apple Chip",
+                    "excerpt": "Big performance jump",
+                }
+            ],
+        }
+    ]
+
+    translated = translator.translate_feed_results(feed_results)
+
+    assert translated[0]["posts"][0]["title"] == "New Apple Chip"
+    assert translated[0]["posts"][0]["excerpt"] == "Big performance jump"
+    assert fake.calls == []

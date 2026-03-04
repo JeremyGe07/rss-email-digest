@@ -45,7 +45,7 @@ Add the following secrets:
 | `SMTP_SECURITY` | Optional SMTP encryption mode: `auto`, `ssl`, `starttls`, `none` | `ssl` |
 | `RECIPIENT_EMAIL` | One or more emails to receive digest (comma-separated) | `a@example.com,b@example.com` |
 | `TOPIC_KEYWORDS` | Optional keyword list for topic filtering (comma-separated) | `AI,芯片,半导体,NVIDIA` |
-| `ENABLE_TRANSLATION` | Optional: translate non-Chinese post title/excerpt to Chinese (`true`/`false`) | `true` |
+| `ENABLE_TRANSLATION` | Optional: translate non-Chinese post title/excerpt to Chinese (`true`/`false`); Chinese feed sources are skipped | `true` |
 | `GEMINI_API_KEY` | Optional: Gemini API key, enables Gemini translation provider (recommended) | `AIza...` |
 | `GEMINI_TRANSLATION_MODEL` | Optional: Gemini model name for translation | `gemini-3-flash-preview` |
 
