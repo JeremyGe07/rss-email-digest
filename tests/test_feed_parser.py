@@ -8,6 +8,7 @@ from src.feed_parser import (
     fetch_feed,
     fetch_all_feeds,
     matches_topic_filter,
+    matches_keywords,
 )
 
 
@@ -131,3 +132,12 @@ async def test_fetch_all_feeds_with_failures():
     # At least one should succeed, at least one should error
     statuses = [r["status"] for r in results]
     assert "error" in statuses
+
+
+def test_matches_keywords_handles_hyphen_and_case_variants():
+    assert matches_keywords("NVIDIA data-center GPU roadmap", "", ["data center gpu"]) is True
+
+
+def test_matches_keywords_respects_word_boundaries_for_ascii_terms():
+    assert matches_keywords("New CUP design", "", ["NPU"]) is False
+    assert matches_keywords("NPU performance improved", "", ["NPU"]) is True
