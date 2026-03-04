@@ -85,6 +85,16 @@ def contains_cjk(text: str) -> bool:
     return bool(re.search(r"[\u4e00-\u9fff\u3400-\u4dbf]", text or ""))
 
 
+def should_skip_feed_translation(feed: Dict) -> bool:
+    """Return True when the feed is likely Chinese and can skip translation entirely."""
+    feed_name = feed.get("name", "")
+    if contains_cjk(feed_name):
+        return True
+
+    language = (feed.get("language") or "").lower()
+    return language.startswith("zh")
+
+
 def maybe_translate_text(
     text: str,
     translator: TranslatorClient,
@@ -110,13 +120,8 @@ def translate_feed_results(feed_results: List[Dict], target_lang: str = "zh-CN")
     cache: Dict[str, str] = {}
 
     for feed in feed_results:
-        try:
-            feed_name = feed.get("name", "")
-            translated_name = maybe_translate_text(feed_name, translator, cache)
-            if translated_name and translated_name != feed_name:
-                feed["name"] = translated_name
-        except Exception as e:
-            logger.warning("Translation skipped for feed name due to error: %s", e)
+        if should_skip_feed_translation(feed):
+            continue
 
         for post in feed.get("posts", []):
             try:
