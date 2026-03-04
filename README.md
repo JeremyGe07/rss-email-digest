@@ -45,7 +45,9 @@ Add the following secrets:
 | `SMTP_SECURITY` | Optional SMTP encryption mode: `auto`, `ssl`, `starttls`, `none` | `ssl` |
 | `RECIPIENT_EMAIL` | One or more emails to receive digest (comma-separated) | `a@example.com,b@example.com` |
 | `TOPIC_KEYWORDS` | Optional keyword list for topic filtering (comma-separated) | `AI,芯片,半导体,NVIDIA` |
-| `ENABLE_TRANSLATION` | Optional: translate non-Chinese title/excerpt to Chinese (`true`/`false`) | `true` |
+| `ENABLE_TRANSLATION` | Optional: translate non-Chinese post title/excerpt to Chinese (`true`/`false`) | `true` |
+| `GEMINI_API_KEY` | Optional: Gemini API key, enables Gemini translation provider (recommended) | `AIza...` |
+| `GEMINI_TRANSLATION_MODEL` | Optional: Gemini model name for translation | `gemini-3-flash-preview` |
 
 #### Gmail Setup
 
@@ -80,6 +82,8 @@ export SMTP_PASSWORD=your-app-password
 export SMTP_SECURITY=auto
 export RECIPIENT_EMAIL=recipient@email.com
 export ENABLE_TRANSLATION=true
+export GEMINI_API_KEY=your-gemini-api-key
+export GEMINI_TRANSLATION_MODEL=gemini-3-flash-preview
 
 # Run the script
 python src/main.py
@@ -168,6 +172,8 @@ Tip: do not delete a feed after one failure. Remove it only if it fails consiste
 - `feedparser` - RSS/Atom feed parsing
 - `aiohttp` - Async HTTP requests for parallel fetching
 - `python-dateutil` - Date parsing and timezone handling
+- `google-genai` - Gemini translation API client (preferred when `GEMINI_API_KEY` is set)
+- `deep-translator` - Translation fallback when Gemini is unavailable
 
 ## License
 
