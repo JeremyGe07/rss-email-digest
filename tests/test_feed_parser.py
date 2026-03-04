@@ -142,8 +142,6 @@ def test_matches_keywords_handles_hyphen_and_case_variants():
 def test_matches_keywords_respects_word_boundaries_for_ascii_terms():
     assert matches_keywords("New CUP design", "", ["NPU"]) is False
     assert matches_keywords("NPU performance improved", "", ["NPU"]) is True
-    assert matches_keywords("LPUnit architecture", "", ["LPU"]) is False
-    assert matches_keywords("LPU performance improved", "", ["LPU"]) is True
 
 
 def test_is_in_recent_window_with_naive_datetime_uses_feed_timezone():

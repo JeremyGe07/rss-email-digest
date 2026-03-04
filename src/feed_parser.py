@@ -268,54 +268,80 @@ async def fetch_feed(
         # Extract site URL from feed metadata
         site_url = feed.feed.get("link", "") if hasattr(feed, "feed") else ""
 
-        # Filter for yesterday's posts
-        yesterday_posts = []
-        yesterday_candidates = 0
+        # Filter for recent-window posts
+        window_posts = []
+        window_candidates = 0
         keyword_hits = 0
         topic_hits = 0
+        total_entries = len(feed.entries)
+        missing_date = 0
+        outside_window = 0
+        future_date = 0
+        now_utc = datetime.now(timezone.utc)
+        cutoff_utc = now_utc - timedelta(hours=window_hours)
         for entry in feed.entries:
             # Try published date first, fall back to updated
             pub_date = getattr(entry, "published_parsed", None) or getattr(entry, "updated_parsed", None)
 
-            if pub_date and is_in_recent_window(pub_date, window_hours=window_hours, naive_timezone=naive_timezone):
-                yesterday_candidates += 1
+            if not pub_date:
+                missing_date += 1
+                continue
 
-                # Extract excerpt from summary or content
-                excerpt = ""
-                if hasattr(entry, "summary"):
-                    excerpt = entry.summary
-                elif hasattr(entry, "content") and entry.content:
-                    excerpt = entry.content[0].value
+            normalized_date = _normalize_entry_datetime(pub_date, naive_timezone=naive_timezone)
+            if not normalized_date:
+                missing_date += 1
+                continue
 
-                # Strip HTML tags and truncate
-                excerpt = re.sub(r'<[^>]+>', '', excerpt)
-                excerpt = excerpt.strip()
-                if len(excerpt) > 300:
-                    excerpt = excerpt[:300] + "..."
+            if normalized_date > now_utc:
+                future_date += 1
+                outside_window += 1
+                continue
+            if normalized_date < cutoff_utc:
+                outside_window += 1
+                continue
 
-                title = getattr(entry, "title", "(No title)")
-                link = getattr(entry, "link", "")
+            window_candidates += 1
 
-                keyword_matched = matches_keywords(title, excerpt, keywords)
-                topic_matched = matches_topic_filter(title, excerpt)
-                if keyword_matched:
-                    keyword_hits += 1
-                if topic_matched:
-                    topic_hits += 1
+            # Extract excerpt from summary or content
+            excerpt = ""
+            if hasattr(entry, "summary"):
+                excerpt = entry.summary
+            elif hasattr(entry, "content") and entry.content:
+                excerpt = entry.content[0].value
 
-                if keyword_matched and topic_matched:
-                    yesterday_posts.append({
-                        "title": title,
-                        "link": link,
-                        "excerpt": excerpt
-                    })
+            # Strip HTML tags and truncate
+            excerpt = re.sub(r'<[^>]+>', '', excerpt)
+            excerpt = excerpt.strip()
+            if len(excerpt) > 300:
+                excerpt = excerpt[:300] + "..."
 
-        status = "success" if yesterday_posts else "no_updates"
+            title = getattr(entry, "title", "(No title)")
+            link = getattr(entry, "link", "")
+
+            keyword_matched = matches_keywords(title, excerpt, keywords)
+            topic_matched = matches_topic_filter(title, excerpt)
+            if keyword_matched:
+                keyword_hits += 1
+            if topic_matched:
+                topic_hits += 1
+
+            if keyword_matched and topic_matched:
+                window_posts.append({
+                    "title": title,
+                    "link": link,
+                    "excerpt": excerpt,
+                })
+
+        status = "success" if window_posts else "no_updates"
         logger.info(
-            "%s: %d posts kept (window candidates=%d, keyword_hits=%d, topic_hits=%d)",
+            "%s: %d posts kept (entries=%d, window candidates=%d, missing_date=%d, outside_window=%d, future_date=%d, keyword_hits=%d, topic_hits=%d)",
             feed_name,
-            len(yesterday_posts),
-            yesterday_candidates,
+            len(window_posts),
+            total_entries,
+            window_candidates,
+            missing_date,
+            outside_window,
+            future_date,
             keyword_hits,
             topic_hits,
         )
@@ -323,7 +349,7 @@ async def fetch_feed(
         return {
             "name": feed_name,
             "status": status,
-            "posts": yesterday_posts,
+            "posts": window_posts,
             "site_url": site_url
         }
 

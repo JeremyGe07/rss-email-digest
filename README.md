@@ -138,6 +138,18 @@ python -m src.test_feed "https://example.com/feed.xml"
 
 ## Troubleshooting
 
+### Understanding feed filter logs
+
+Each feed now logs metrics like:
+
+- `entries`: total items returned by RSS source
+- `window candidates`: items whose timestamps fall inside `FILTER_WINDOW_HOURS`
+- `missing_date`: items without parseable `published/updated` timestamp
+- `outside_window`: items older than the rolling window (or future-dated)
+- `future_date`: subset of outside-window items timestamped in the future
+
+If `window candidates=0`, that usually means the feed returned only old items, or date fields are missing/unparseable for that run.
+
 ### No email received
 
 1. Check GitHub Actions logs for errors
