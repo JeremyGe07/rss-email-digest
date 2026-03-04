@@ -70,13 +70,36 @@ DEFAULT_TOPIC_FILTER = {
 }
 
 
+def _normalize_text_for_matching(text: str) -> str:
+    """Normalize text for more robust keyword matching."""
+    text = (text or "").lower()
+    text = re.sub(r"[\-_/]+", " ", text)
+    text = re.sub(r"[^\w\s一-鿿]", " ", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def _keyword_to_regex(keyword: str) -> re.Pattern:
+    """Build regex pattern for a keyword with word boundaries when useful."""
+    norm_keyword = _normalize_text_for_matching(keyword)
+    escaped = re.escape(norm_keyword)
+
+    # For alnum/ASCII-ish terms use boundaries; for CJK, plain substring is usually better.
+    if re.fullmatch(r"[a-z0-9. ]+", norm_keyword):
+        pattern = rf"(?<![a-z0-9]){escaped}(?![a-z0-9])"
+    else:
+        pattern = escaped
+
+    return re.compile(pattern)
+
+
 def matches_keywords(title: str, excerpt: str, keywords: List[str]) -> bool:
-    """Return True if title/excerpt contains any keyword (case-insensitive)."""
+    """Return True if title/excerpt matches any keyword after normalization."""
     if not keywords:
         return True
 
-    haystack = f"{title} {excerpt}".lower()
-    return any(keyword.lower() in haystack for keyword in keywords)
+    haystack = _normalize_text_for_matching(f"{title} {excerpt}")
+    return any(_keyword_to_regex(keyword).search(haystack) for keyword in keywords if keyword and keyword.strip())
 
 
 def matches_topic_filter(title: str, excerpt: str, topic_filter: Dict = None) -> bool:
@@ -222,11 +245,16 @@ async def fetch_feed(
 
         # Filter for yesterday's posts
         yesterday_posts = []
+        yesterday_candidates = 0
+        keyword_hits = 0
+        topic_hits = 0
         for entry in feed.entries:
             # Try published date first, fall back to updated
             pub_date = getattr(entry, "published_parsed", None) or getattr(entry, "updated_parsed", None)
 
             if pub_date and is_from_yesterday(pub_date):
+                yesterday_candidates += 1
+
                 # Extract excerpt from summary or content
                 excerpt = ""
                 if hasattr(entry, "summary"):
@@ -242,7 +270,15 @@ async def fetch_feed(
 
                 title = getattr(entry, "title", "(No title)")
                 link = getattr(entry, "link", "")
-                if matches_keywords(title, excerpt, keywords) and matches_topic_filter(title, excerpt):
+
+                keyword_matched = matches_keywords(title, excerpt, keywords)
+                topic_matched = matches_topic_filter(title, excerpt)
+                if keyword_matched:
+                    keyword_hits += 1
+                if topic_matched:
+                    topic_hits += 1
+
+                if keyword_matched and topic_matched:
                     yesterday_posts.append({
                         "title": title,
                         "link": link,
@@ -250,7 +286,14 @@ async def fetch_feed(
                     })
 
         status = "success" if yesterday_posts else "no_updates"
-        logger.info(f"{feed_name}: {len(yesterday_posts)} posts from yesterday")
+        logger.info(
+            "%s: %d posts kept (yesterday candidates=%d, keyword_hits=%d, topic_hits=%d)",
+            feed_name,
+            len(yesterday_posts),
+            yesterday_candidates,
+            keyword_hits,
+            topic_hits,
+        )
 
         return {
             "name": feed_name,
