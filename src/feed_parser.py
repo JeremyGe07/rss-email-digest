@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_AI_SEMICONDUCTOR_KEYWORDS = [
     "AI芯片", "AI 晶片", "加速卡", "AI加速卡", "训练卡", "推理卡", "算力卡", "智算卡",
-    "GPU", "data center gpu", "accelerator", "AI accelerator", "ASIC", "NPU", "TPU", "DPU", "XPU",
+    "GPU", "NPU", "LPU", "data center gpu", "accelerator", "AI accelerator", "ASIC", "TPU", "DPU", "XPU",
     "H100", "H200", "B200", "GB200", "Blackwell", "Hopper", "MI300", "Gaudi", "Trainium", "Inferentia",
     "国产GPU", "摩尔线程", "壁仞", "天数智芯", "沐曦", "景嘉微", "寒武纪", "昆仑芯", "昇腾", "海光",
     "龙芯", "兆芯", "飞腾", "鲲鹏", "HBM", "HBM2e", "HBM3", "HBM3E", "CoWoS", "SoIC", "InFO",
