@@ -1,9 +1,11 @@
 """RSS feed parser module."""
+import os
 import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import List, Dict, Union
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 import time
 import aiohttp
 import feedparser
@@ -13,6 +15,13 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+DEFAULT_FETCH_ACCEPT = "application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.8"
+DEFAULT_FETCH_USER_AGENT = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 RSSDigestBot/1.0"
+)
 
 
 DEFAULT_AI_SEMICONDUCTOR_KEYWORDS = [
@@ -70,13 +79,36 @@ DEFAULT_TOPIC_FILTER = {
 }
 
 
+def _normalize_text_for_matching(text: str) -> str:
+    """Normalize text for more robust keyword matching."""
+    text = (text or "").lower()
+    text = re.sub(r"[\-_/]+", " ", text)
+    text = re.sub(r"[^\w\s一-鿿]", " ", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def _keyword_to_regex(keyword: str) -> re.Pattern:
+    """Build regex pattern for a keyword with word boundaries when useful."""
+    norm_keyword = _normalize_text_for_matching(keyword)
+    escaped = re.escape(norm_keyword)
+
+    # For alnum/ASCII-ish terms use boundaries; for CJK, plain substring is usually better.
+    if re.fullmatch(r"[a-z0-9. ]+", norm_keyword):
+        pattern = rf"(?<![a-z0-9]){escaped}(?![a-z0-9])"
+    else:
+        pattern = escaped
+
+    return re.compile(pattern)
+
+
 def matches_keywords(title: str, excerpt: str, keywords: List[str]) -> bool:
-    """Return True if title/excerpt contains any keyword (case-insensitive)."""
+    """Return True if title/excerpt matches any keyword after normalization."""
     if not keywords:
         return True
 
-    haystack = f"{title} {excerpt}".lower()
-    return any(keyword.lower() in haystack for keyword in keywords)
+    haystack = _normalize_text_for_matching(f"{title} {excerpt}")
+    return any(_keyword_to_regex(keyword).search(haystack) for keyword in keywords if keyword and keyword.strip())
 
 
 def matches_topic_filter(title: str, excerpt: str, topic_filter: Dict = None) -> bool:
@@ -137,33 +169,55 @@ def parse_opml(opml_path: Path) -> List[Dict[str, str]]:
     return feeds
 
 
-def is_from_yesterday(date_value: Union[datetime, time.struct_time, None]) -> bool:
-    """
-    Check if a date is from yesterday (UTC calendar date).
-
-    Args:
-        date_value: datetime object, struct_time, or None
-
-    Returns:
-        True if date is from yesterday's calendar date, False otherwise
-    """
+def _normalize_entry_datetime(
+    date_value: Union[datetime, time.struct_time, None],
+    naive_timezone: str = "Asia/Shanghai",
+) -> Union[datetime, None]:
+    """Normalize entry datetime to UTC; infer timezone for naive datetimes."""
     if date_value is None:
+        return None
+
+    if isinstance(date_value, time.struct_time):
+        normalized = datetime(*date_value[:6], tzinfo=timezone.utc)
+    elif isinstance(date_value, datetime):
+        normalized = date_value
+    else:
+        return None
+
+    if normalized.tzinfo is None:
+        try:
+            normalized = normalized.replace(tzinfo=ZoneInfo(naive_timezone))
+        except Exception:
+            normalized = normalized.replace(tzinfo=timezone.utc)
+
+    return normalized.astimezone(timezone.utc)
+
+
+def is_in_recent_window(
+    date_value: Union[datetime, time.struct_time, None],
+    window_hours: int = 24,
+    now: Union[datetime, None] = None,
+    naive_timezone: str = "Asia/Shanghai",
+) -> bool:
+    """Check if date is within the last N hours (rolling window)."""
+    normalized = _normalize_entry_datetime(date_value, naive_timezone=naive_timezone)
+    if normalized is None:
         return False
 
-    # Convert struct_time to datetime if needed
-    if isinstance(date_value, time.struct_time):
-        date_value = datetime(*date_value[:6], tzinfo=timezone.utc)
+    current = now.astimezone(timezone.utc) if now else datetime.now(timezone.utc)
+    cutoff = current - timedelta(hours=window_hours)
+    return cutoff <= normalized <= current
 
-    # Ensure datetime has timezone info
-    if date_value.tzinfo is None:
-        date_value = date_value.replace(tzinfo=timezone.utc)
 
-    # Get yesterday's date (calendar date only, ignore time)
+def is_from_yesterday(date_value: Union[datetime, time.struct_time, None]) -> bool:
+    """Backward-compatible UTC yesterday check used by existing tests/helpers."""
+    normalized = _normalize_entry_datetime(date_value, naive_timezone="UTC")
+    if normalized is None:
+        return False
+
     now = datetime.now(timezone.utc)
     yesterday = (now - timedelta(days=1)).date()
-
-    # Compare calendar dates only
-    return date_value.date() == yesterday
+    return normalized.date() == yesterday
 
 
 async def fetch_feed(
@@ -171,7 +225,11 @@ async def fetch_feed(
     feed_url: str,
     timeout: int = 15,
     html_url: str = "",
-    keywords: List[str] = None
+    keywords: List[str] = None,
+    window_hours: int = 24,
+    naive_timezone: str = "Asia/Shanghai",
+    missing_date_fallback_ratio: float = 0.8,
+    missing_date_fallback_latest_n: int = 3,
 ) -> Dict:
     """
     Fetch RSS feed and extract yesterday's posts.
@@ -189,8 +247,17 @@ async def fetch_feed(
         keywords = DEFAULT_AI_SEMICONDUCTOR_KEYWORDS
 
     try:
+        request_headers = {
+            "Accept": DEFAULT_FETCH_ACCEPT,
+            "User-Agent": os.getenv("RSS_FETCH_USER_AGENT", DEFAULT_FETCH_USER_AGENT),
+        }
+
         async with aiohttp.ClientSession() as session:
-            async with session.get(feed_url, timeout=aiohttp.ClientTimeout(total=timeout)) as response:
+            async with session.get(
+                feed_url,
+                timeout=aiohttp.ClientTimeout(total=timeout),
+                headers=request_headers,
+            ) as response:
                 if response.status >= 400:
                     return {
                         "name": feed_name,
@@ -199,6 +266,8 @@ async def fetch_feed(
                         "error_message": f"HTTP {response.status}",
                         "site_url": html_url
                     }
+                response_content_type = response.headers.get("Content-Type", "")
+                response_final_url = str(response.url)
                 content = await response.read()
 
         # Parse feed content from raw bytes for better encoding handling
@@ -220,42 +289,125 @@ async def fetch_feed(
         # Extract site URL from feed metadata
         site_url = feed.feed.get("link", "") if hasattr(feed, "feed") else ""
 
-        # Filter for yesterday's posts
-        yesterday_posts = []
+        total_entries = len(feed.entries)
+        if total_entries == 0:
+            logger.info(
+                "%s: feed returned 0 entries (final_url=%s, content_type=%s)",
+                feed_name,
+                response_final_url,
+                response_content_type,
+            )
+
+        # Filter for recent-window posts
+        window_posts = []
+        window_candidates = 0
+        keyword_hits = 0
+        topic_hits = 0
+        missing_date = 0
+        outside_window = 0
+        future_date = 0
+        fallback_considered = 0
+        fallback_kept = 0
+        missing_date_entries = []
+
+        now_utc = datetime.now(timezone.utc)
+        cutoff_utc = now_utc - timedelta(hours=window_hours)
+
         for entry in feed.entries:
+            title = getattr(entry, "title", "(No title)")
+            link = getattr(entry, "link", "")
+
+            excerpt = ""
+            if hasattr(entry, "summary"):
+                excerpt = entry.summary
+            elif hasattr(entry, "content") and entry.content:
+                excerpt = entry.content[0].value
+            excerpt = re.sub(r'<[^>]+>', '', excerpt)
+            excerpt = excerpt.strip()
+            if len(excerpt) > 300:
+                excerpt = excerpt[:300] + "..."
+
             # Try published date first, fall back to updated
             pub_date = getattr(entry, "published_parsed", None) or getattr(entry, "updated_parsed", None)
+            if not pub_date:
+                missing_date += 1
+                missing_date_entries.append({"title": title, "link": link, "excerpt": excerpt})
+                continue
 
-            if pub_date and is_from_yesterday(pub_date):
-                # Extract excerpt from summary or content
-                excerpt = ""
-                if hasattr(entry, "summary"):
-                    excerpt = entry.summary
-                elif hasattr(entry, "content") and entry.content:
-                    excerpt = entry.content[0].value
+            normalized_date = _normalize_entry_datetime(pub_date, naive_timezone=naive_timezone)
+            if not normalized_date:
+                missing_date += 1
+                missing_date_entries.append({"title": title, "link": link, "excerpt": excerpt})
+                continue
 
-                # Strip HTML tags and truncate
-                excerpt = re.sub(r'<[^>]+>', '', excerpt)
-                excerpt = excerpt.strip()
-                if len(excerpt) > 300:
-                    excerpt = excerpt[:300] + "..."
+            if normalized_date > now_utc:
+                future_date += 1
+                outside_window += 1
+                continue
+            if normalized_date < cutoff_utc:
+                outside_window += 1
+                continue
 
-                title = getattr(entry, "title", "(No title)")
-                link = getattr(entry, "link", "")
-                if matches_keywords(title, excerpt, keywords) and matches_topic_filter(title, excerpt):
-                    yesterday_posts.append({
-                        "title": title,
-                        "link": link,
-                        "excerpt": excerpt
-                    })
+            window_candidates += 1
 
-        status = "success" if yesterday_posts else "no_updates"
-        logger.info(f"{feed_name}: {len(yesterday_posts)} posts from yesterday")
+            keyword_matched = matches_keywords(title, excerpt, keywords)
+            topic_matched = matches_topic_filter(title, excerpt)
+            if keyword_matched:
+                keyword_hits += 1
+            if topic_matched:
+                topic_hits += 1
+
+            if keyword_matched and topic_matched:
+                window_posts.append({
+                    "title": title,
+                    "link": link,
+                    "excerpt": excerpt,
+                    "_dedupe_scope": "window",
+                })
+
+        missing_ratio = (missing_date / total_entries) if total_entries else 0.0
+        should_use_missing_fallback = (
+            window_candidates == 0
+            and missing_date_entries
+            and missing_ratio >= missing_date_fallback_ratio
+            and missing_date_fallback_latest_n > 0
+        )
+
+        if should_use_missing_fallback:
+            fallback_slice = missing_date_entries[:missing_date_fallback_latest_n]
+            fallback_considered = len(fallback_slice)
+            for post in fallback_slice:
+                keyword_matched = matches_keywords(post["title"], post["excerpt"], keywords)
+                topic_matched = matches_topic_filter(post["title"], post["excerpt"])
+                if keyword_matched:
+                    keyword_hits += 1
+                if topic_matched:
+                    topic_hits += 1
+                if keyword_matched and topic_matched:
+                    fallback_kept += 1
+                    post["_dedupe_scope"] = "fallback_missing_date"
+                    window_posts.append(post)
+
+        status = "success" if window_posts else "no_updates"
+        logger.info(
+            "%s: %d posts kept (entries=%d, window candidates=%d, missing_date=%d, outside_window=%d, future_date=%d, fallback_considered=%d, fallback_kept=%d, keyword_hits=%d, topic_hits=%d)",
+            feed_name,
+            len(window_posts),
+            total_entries,
+            window_candidates,
+            missing_date,
+            outside_window,
+            future_date,
+            fallback_considered,
+            fallback_kept,
+            keyword_hits,
+            topic_hits,
+        )
 
         return {
             "name": feed_name,
             "status": status,
-            "posts": yesterday_posts,
+            "posts": window_posts,
             "site_url": site_url
         }
 
@@ -283,7 +435,11 @@ async def fetch_all_feeds(
     feeds: List[Dict[str, str]],
     batch_size: int = 10,
     timeout: int = 15,
-    keywords: List[str] = None
+    keywords: List[str] = None,
+    window_hours: int = 24,
+    naive_timezone: str = "Asia/Shanghai",
+    missing_date_fallback_ratio: float = 0.8,
+    missing_date_fallback_latest_n: int = 3,
 ) -> List[Dict]:
     """
     Fetch multiple RSS feeds in parallel batches.
@@ -311,6 +467,10 @@ async def fetch_all_feeds(
                 timeout,
                 feed.get("html_url", ""),
                 keywords,
+                window_hours,
+                naive_timezone,
+                missing_date_fallback_ratio,
+                missing_date_fallback_latest_n,
             )
             for feed in batch
         ]
