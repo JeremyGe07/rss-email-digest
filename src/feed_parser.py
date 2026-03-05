@@ -23,6 +23,7 @@ DEFAULT_FETCH_USER_AGENT = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 RSSDigestBot/1.0"
 )
+DEFAULT_DEBUG_SNIPPET_LENGTH = 200
 
 
 DEFAULT_AI_SEMICONDUCTOR_KEYWORDS = [
@@ -310,13 +311,39 @@ async def fetch_feed(
                     }
                 response_content_type = response.headers.get("Content-Type", "")
                 response_final_url = str(response.url)
+                response_status = response.status
                 content = await response.read()
         finally:
             if session_owner and request_session:
                 await request_session.close()
 
+        snippet_length = int(os.getenv("RSS_DEBUG_SNIPPET_LENGTH", str(DEFAULT_DEBUG_SNIPPET_LENGTH)))
+        content_head = content[:snippet_length].decode("utf-8", errors="replace").replace("\n", "\\n").replace("\r", "\\r")
+
         # Parse feed content from raw bytes for better encoding handling
         feed = feedparser.parse(content)
+
+        has_rss_markers = any(marker in content_head.lower() for marker in ("<rss", "<feed", "<rdf", "<channel"))
+        suspicious_reasons = []
+        if "html" in response_content_type.lower() and not has_rss_markers:
+            suspicious_reasons.append("content_type_is_html")
+        if len(feed.entries) == 0:
+            suspicious_reasons.append("entries=0")
+        if getattr(feed, "bozo", 0):
+            suspicious_reasons.append("bozo=1")
+
+        if suspicious_reasons:
+            logger.warning(
+                "%s: suspicious feed response (%s, status=%s, final_url=%s, content_type=%s, bytes=%d, bozo_exception=%r, head=%s)",
+                feed_name,
+                ", ".join(suspicious_reasons),
+                response_status,
+                response_final_url,
+                response_content_type,
+                len(content),
+                getattr(feed, "bozo_exception", None),
+                content_head,
+            )
 
         # bozo often means malformed XML, but many feeds still provide usable entries.
         if feed.bozo and not feed.entries:
