@@ -12,6 +12,7 @@ import aiohttp
 import feedparser
 import asyncio
 import logging
+from email.utils import parsedate_to_datetime
 
 
 logging.basicConfig(level=logging.INFO)
@@ -256,6 +257,78 @@ def is_from_yesterday(date_value: Union[datetime, time.struct_time, None]) -> bo
     yesterday = (now - timedelta(days=1)).date()
     return normalized.date() == yesterday
 
+def _entry_get(entry: Union[dict, object], key: str, default=None):
+    """Read entry field from feedparser objects or dict fallback entries."""
+    if isinstance(entry, dict):
+        return entry.get(key, default)
+    return getattr(entry, key, default)
+
+
+def _localname(tag: str) -> str:
+    """Get local xml name from namespaced tag."""
+    if not tag:
+        return ""
+    if "}" in tag:
+        return tag.split("}", 1)[1].lower()
+    return tag.lower()
+
+
+def _parse_date_string(date_text: str) -> Union[time.struct_time, None]:
+    """Parse common RSS/Atom date strings into struct_time."""
+    if not date_text:
+        return None
+
+    try:
+        parsed_dt = parsedate_to_datetime(date_text.strip())
+        if parsed_dt is None:
+            return None
+        if parsed_dt.tzinfo is None:
+            parsed_dt = parsed_dt.replace(tzinfo=timezone.utc)
+        return parsed_dt.astimezone(timezone.utc).timetuple()
+    except Exception:
+        return None
+
+
+def _extract_entries_from_xml_fallback(content: bytes) -> List[Dict]:
+    """Fallback XML parsing for feeds that feedparser fails to tokenize."""
+    try:
+        root = ET.fromstring(content)
+    except Exception:
+        return []
+
+    extracted_entries = []
+    for node in root.iter():
+        node_name = _localname(node.tag)
+        if node_name not in ("item", "entry"):
+            continue
+
+        item = {"title": "(No title)", "link": "", "summary": ""}
+        pub_date_text = ""
+
+        for child in list(node):
+            child_name = _localname(child.tag)
+            child_text = (child.text or "").strip()
+            if child_name == "title" and child_text:
+                item["title"] = child_text
+            elif child_name == "link":
+                href = child.attrib.get("href", "").strip()
+                item["link"] = href or child_text
+            elif child_name in ("description", "summary", "content") and child_text:
+                item["summary"] = child_text
+            elif child_name in ("pubdate", "updated", "date") and child_text and not pub_date_text:
+                pub_date_text = child_text
+
+        parsed_date = _parse_date_string(pub_date_text)
+        if parsed_date:
+            item["published_parsed"] = parsed_date
+
+        extracted_entries.append(item)
+
+    return extracted_entries
+
+
+
+
 
 async def fetch_feed(
     feed_name: str,
@@ -324,29 +397,42 @@ async def fetch_feed(
         feed = feedparser.parse(content)
 
         has_rss_markers = any(marker in content_head.lower() for marker in ("<rss", "<feed", "<rdf", "<channel"))
+        entries = list(getattr(feed, "entries", []))
+        used_xml_fallback = False
+        if not entries and has_rss_markers and "xml" in response_content_type.lower():
+            fallback_entries = _extract_entries_from_xml_fallback(content)
+            if fallback_entries:
+                entries = fallback_entries
+                used_xml_fallback = True
+                logger.info("%s: xml fallback extracted %d entries", feed_name, len(entries))
+
         suspicious_reasons = []
+        lowered_head = content_head.lower()
         if "html" in response_content_type.lower() and not has_rss_markers:
             suspicious_reasons.append("content_type_is_html")
-        if len(feed.entries) == 0:
+        if not entries:
             suspicious_reasons.append("entries=0")
         if getattr(feed, "bozo", 0):
             suspicious_reasons.append("bozo=1")
+        if any(token in lowered_head for token in ("_guard/auto.js", "captcha", "cloudflare", "enable javascript")):
+            suspicious_reasons.append("likely_anti_bot_block")
 
         if suspicious_reasons:
             logger.warning(
-                "%s: suspicious feed response (%s, status=%s, final_url=%s, content_type=%s, bytes=%d, bozo_exception=%r, head=%s)",
+                "%s: suspicious feed response (%s, status=%s, final_url=%s, content_type=%s, bytes=%d, xml_fallback_used=%s, bozo_exception=%r, head=%s)",
                 feed_name,
                 ", ".join(suspicious_reasons),
                 response_status,
                 response_final_url,
                 response_content_type,
                 len(content),
+                used_xml_fallback,
                 getattr(feed, "bozo_exception", None),
                 content_head,
             )
 
         # bozo often means malformed XML, but many feeds still provide usable entries.
-        if feed.bozo and not feed.entries:
+        if feed.bozo and not entries:
             return {
                 "name": feed_name,
                 "status": "error",
@@ -361,7 +447,7 @@ async def fetch_feed(
         # Extract site URL from feed metadata
         site_url = feed.feed.get("link", "") if hasattr(feed, "feed") else ""
 
-        total_entries = len(feed.entries)
+        total_entries = len(entries)
         if total_entries == 0:
             logger.info(
                 "%s: feed returned 0 entries (final_url=%s, content_type=%s)",
@@ -385,22 +471,25 @@ async def fetch_feed(
         now_utc = datetime.now(timezone.utc)
         cutoff_utc = now_utc - timedelta(hours=window_hours)
 
-        for entry in feed.entries:
-            title = getattr(entry, "title", "(No title)")
-            link = getattr(entry, "link", "")
+        for entry in entries:
+            title = _entry_get(entry, "title", "(No title)")
+            link = _entry_get(entry, "link", "")
 
-            excerpt = ""
-            if hasattr(entry, "summary"):
-                excerpt = entry.summary
-            elif hasattr(entry, "content") and entry.content:
-                excerpt = entry.content[0].value
+            excerpt = _entry_get(entry, "summary", "") or ""
+            entry_content = _entry_get(entry, "content", None)
+            if not excerpt and entry_content:
+                first_content = entry_content[0] if isinstance(entry_content, (list, tuple)) else entry_content
+                if isinstance(first_content, dict):
+                    excerpt = first_content.get("value", "")
+                else:
+                    excerpt = getattr(first_content, "value", "")
             excerpt = re.sub(r'<[^>]+>', '', excerpt)
             excerpt = excerpt.strip()
             if len(excerpt) > 300:
                 excerpt = excerpt[:300] + "..."
 
             # Try published date first, fall back to updated
-            pub_date = getattr(entry, "published_parsed", None) or getattr(entry, "updated_parsed", None)
+            pub_date = _entry_get(entry, "published_parsed", None) or _entry_get(entry, "updated_parsed", None)
             if not pub_date:
                 missing_date += 1
                 missing_date_entries.append({"title": title, "link": link, "excerpt": excerpt})

@@ -239,3 +239,54 @@ async def test_fetch_feed_includes_bozo_exception_in_warning(monkeypatch, caplog
     assert result["status"] == "error"
     assert "bozo=1" in caplog.text
     assert "bad xml" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_fetch_feed_xml_fallback_extracts_namespaced_rss_items(monkeypatch):
+    class ParsedFeed:
+        bozo = 0
+        bozo_exception = None
+        entries = []
+        feed = {}
+
+    xml_body = b"""<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>DRAMX</title>
+    <item>
+      <title>HBM demand rises</title>
+      <link>https://example.com/post-1</link>
+      <description>HBM and CoWoS update</description>
+      <pubDate>Wed, 05 Mar 2026 00:00:00 GMT</pubDate>
+    </item>
+  </channel>
+</rss>
+"""
+
+    monkeypatch.setattr("src.feed_parser.feedparser.parse", lambda content: ParsedFeed())
+    fake_session = _FakeSession(_FakeResponse(content_type="application/xml; charset=utf-8", body=xml_body))
+
+    result = await fetch_feed("DRAMx", "https://example.com/rss", session=fake_session, keywords=["HBM"])
+
+    assert result["status"] == "success"
+    assert len(result["posts"]) == 1
+    assert result["posts"][0]["title"] == "HBM demand rises"
+
+
+@pytest.mark.asyncio
+async def test_fetch_feed_marks_likely_antibot_block(monkeypatch, caplog):
+    class ParsedFeed:
+        bozo = 0
+        bozo_exception = None
+        entries = []
+        feed = {}
+
+    monkeypatch.setattr("src.feed_parser.feedparser.parse", lambda content: ParsedFeed())
+    fake_session = _FakeSession(
+        _FakeResponse(content_type="text/html; charset=utf-8", body=b'<script src="/_guard/auto.js"></script>')
+    )
+
+    with caplog.at_level("WARNING"):
+        await fetch_feed("Expreview", "https://example.com/rss", session=fake_session)
+
+    assert "likely_anti_bot_block" in caplog.text
