@@ -162,3 +162,11 @@ def test_is_in_recent_window_excludes_older_than_window():
 def test_matches_keywords_allows_common_model_suffixes():
     assert matches_keywords("HBM4 bandwidth target", "", ["HBM"]) is True
     assert matches_keywords("PCIe5 ecosystem", "", ["PCIe"]) is True
+
+
+def test_matches_keywords_handles_letter_digit_glue_variants():
+    assert matches_keywords("PCIe6.0 lane planning", "", ["PCIe 6.0"]) is True
+
+
+def test_matches_topic_filter_uses_word_boundary_for_english_exclude_terms():
+    assert matches_topic_filter("AI silicon preview", "HBM roadmap and CoWoS updates") is True

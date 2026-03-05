@@ -2,6 +2,7 @@
 import os
 import re
 import xml.etree.ElementTree as ET
+from functools import lru_cache
 from pathlib import Path
 from typing import List, Dict, Union
 from datetime import datetime, timedelta, timezone
@@ -82,6 +83,8 @@ def _normalize_text_for_matching(text: str) -> str:
     """Normalize text for more robust keyword matching."""
     text = (text or "").lower()
     text = re.sub(r"[\-_/]+", " ", text)
+    text = re.sub(r"([a-z])([0-9])", r"\1 \2", text)
+    text = re.sub(r"([0-9])([a-z])", r"\1 \2", text)
     text = re.sub(r"[^\w\s一-鿿]", " ", text)
     text = re.sub(r"\s+", " ", text)
     return text.strip()
@@ -102,28 +105,61 @@ def _keyword_to_regex(keyword: str) -> re.Pattern:
     return re.compile(pattern)
 
 
+def _dedupe_terms(terms: List[str]) -> List[str]:
+    """Deduplicate terms while keeping their original order."""
+    seen = set()
+    deduped = []
+    for term in terms or []:
+        if not term or not term.strip():
+            continue
+        normalized = _normalize_text_for_matching(term)
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        deduped.append(term)
+    return deduped
+
+
+@lru_cache(maxsize=128)
+def _compile_patterns(terms: tuple[str, ...]) -> tuple[re.Pattern, ...]:
+    """Compile matching patterns once for a term set."""
+    return tuple(_keyword_to_regex(term) for term in terms)
+
+
+def _to_pattern_tuple(terms: List[str]) -> tuple[re.Pattern, ...]:
+    deduped_terms = tuple(_dedupe_terms(terms))
+    if not deduped_terms:
+        return tuple()
+    return _compile_patterns(deduped_terms)
+
+
 def matches_keywords(title: str, excerpt: str, keywords: List[str]) -> bool:
     """Return True if title/excerpt matches any keyword after normalization."""
     if not keywords:
         return True
 
     haystack = _normalize_text_for_matching(f"{title} {excerpt}")
-    return any(_keyword_to_regex(keyword).search(haystack) for keyword in keywords if keyword and keyword.strip())
+    return any(pattern.search(haystack) for pattern in _to_pattern_tuple(keywords))
 
 
 def matches_topic_filter(title: str, excerpt: str, topic_filter: Dict = None) -> bool:
     """Return True when title/excerpt matches strict AI chip filtering rules."""
     config = topic_filter or DEFAULT_TOPIC_FILTER
-    text = f"{title} {excerpt}".lower()
-    title_lower = title.lower()
+    text = _normalize_text_for_matching(f"{title} {excerpt}")
+    title_norm = _normalize_text_for_matching(title)
 
-    if any(term.lower() in text for term in config.get("exclude", [])):
+    exclude_patterns = _to_pattern_tuple(config.get("exclude", []))
+    strong_patterns = _to_pattern_tuple(config.get("strong", []))
+    medium_patterns = _to_pattern_tuple(config.get("medium", []))
+    weak_patterns = _to_pattern_tuple(config.get("weak", []))
+
+    if any(pattern.search(text) for pattern in exclude_patterns):
         return False
 
-    strong_hits = [term for term in config.get("strong", []) if term.lower() in text]
+    strong_hits = [pattern for pattern in strong_patterns if pattern.search(text)]
 
     if config.get("title_strong_direct_accept", False) and any(
-        term.lower() in title_lower for term in config.get("strong", [])
+        pattern.search(title_norm) for pattern in strong_patterns
     ):
         return True
 
@@ -132,8 +168,8 @@ def matches_topic_filter(title: str, excerpt: str, topic_filter: Dict = None) ->
 
     weights = config.get("weights", {"strong": 6, "medium": 2, "weak": 1})
     score = len(strong_hits) * weights.get("strong", 6)
-    score += sum(1 for term in config.get("medium", []) if term.lower() in text) * weights.get("medium", 2)
-    score += sum(1 for term in config.get("weak", []) if term.lower() in text) * weights.get("weak", 1)
+    score += sum(1 for pattern in medium_patterns if pattern.search(text)) * weights.get("medium", 2)
+    score += sum(1 for pattern in weak_patterns if pattern.search(text)) * weights.get("weak", 1)
 
     return score >= config.get("threshold_default", 6)
 
@@ -230,6 +266,7 @@ async def fetch_feed(
     naive_timezone: str = "Asia/Shanghai",
     missing_date_fallback_ratio: float = 0.8,
     missing_date_fallback_latest_n: int = 3,
+    session: Union[aiohttp.ClientSession, None] = None,
 ) -> Dict:
     """
     Fetch RSS feed and extract yesterday's posts.
@@ -252,8 +289,13 @@ async def fetch_feed(
             "User-Agent": os.getenv("RSS_FETCH_USER_AGENT", DEFAULT_FETCH_USER_AGENT),
         }
 
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
+        request_session = session
+        session_owner = request_session is None
+        if session_owner:
+            request_session = aiohttp.ClientSession()
+
+        try:
+            async with request_session.get(
                 feed_url,
                 timeout=aiohttp.ClientTimeout(total=timeout),
                 headers=request_headers,
@@ -269,6 +311,9 @@ async def fetch_feed(
                 response_content_type = response.headers.get("Content-Type", "")
                 response_final_url = str(response.url)
                 content = await response.read()
+        finally:
+            if session_owner and request_session:
+                await request_session.close()
 
         # Parse feed content from raw bytes for better encoding handling
         feed = feedparser.parse(content)
@@ -457,39 +502,43 @@ async def fetch_all_feeds(
 
     logger.info(f"Fetching {len(feeds)} feeds in batches of {batch_size}...")
 
-    # Process feeds in batches to avoid overwhelming the system
-    for i in range(0, len(feeds), batch_size):
-        batch = feeds[i:i + batch_size]
-        tasks = [
-            fetch_feed(
-                feed["title"],
-                feed["url"],
-                timeout,
-                feed.get("html_url", ""),
-                keywords,
-                window_hours,
-                naive_timezone,
-                missing_date_fallback_ratio,
-                missing_date_fallback_latest_n,
-            )
-            for feed in batch
-        ]
-        batch_results = await asyncio.gather(*tasks, return_exceptions=True)
+    connector_limit = max(batch_size * 2, 20)
+    connector = aiohttp.TCPConnector(limit=connector_limit)
+    async with aiohttp.ClientSession(connector=connector) as shared_session:
+        # Process feeds in batches to avoid overwhelming the system
+        for i in range(0, len(feeds), batch_size):
+            batch = feeds[i:i + batch_size]
+            tasks = [
+                fetch_feed(
+                    feed["title"],
+                    feed["url"],
+                    timeout,
+                    feed.get("html_url", ""),
+                    keywords,
+                    window_hours,
+                    naive_timezone,
+                    missing_date_fallback_ratio,
+                    missing_date_fallback_latest_n,
+                    session=shared_session,
+                )
+                for feed in batch
+            ]
+            batch_results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # Filter out exceptions and add to results
-        for j, result in enumerate(batch_results):
-            if isinstance(result, Exception):
-                feed = batch[j]
-                logger.error(f"{feed['title']}: Unexpected error - {result}")
-                results.append({
-                    "name": feed["title"],
-                    "status": "error",
-                    "posts": [],
-                    "error_message": f"Unexpected error: {str(result)}",
-                    "site_url": feed.get("html_url", "")
-                })
-            else:
-                results.append(result)
+            # Filter out exceptions and add to results
+            for j, result in enumerate(batch_results):
+                if isinstance(result, Exception):
+                    feed = batch[j]
+                    logger.error(f"{feed['title']}: Unexpected error - {result}")
+                    results.append({
+                        "name": feed["title"],
+                        "status": "error",
+                        "posts": [],
+                        "error_message": f"Unexpected error: {str(result)}",
+                        "site_url": feed.get("html_url", "")
+                    })
+                else:
+                    results.append(result)
 
     logger.info(f"Completed fetching {len(results)} feeds")
     return results
