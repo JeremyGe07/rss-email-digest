@@ -170,3 +170,123 @@ def test_matches_keywords_handles_letter_digit_glue_variants():
 
 def test_matches_topic_filter_uses_word_boundary_for_english_exclude_terms():
     assert matches_topic_filter("AI silicon preview", "HBM roadmap and CoWoS updates") is True
+
+
+class _FakeResponse:
+    def __init__(self, status=200, content_type="text/html; charset=utf-8", body=b"<html>blocked</html>", url="https://example.com/rss"):
+        self.status = status
+        self.headers = {"Content-Type": content_type}
+        self.url = url
+        self._body = body
+
+    async def read(self):
+        return self._body
+
+
+class _FakeRequestCtx:
+    def __init__(self, response):
+        self.response = response
+
+    async def __aenter__(self):
+        return self.response
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+
+class _FakeSession:
+    def __init__(self, response):
+        self.response = response
+
+    def get(self, *args, **kwargs):
+        return _FakeRequestCtx(self.response)
+
+
+@pytest.mark.asyncio
+async def test_fetch_feed_logs_suspicious_response(monkeypatch, caplog):
+    class ParsedFeed:
+        bozo = 0
+        bozo_exception = None
+        entries = []
+        feed = {}
+
+    monkeypatch.setattr("src.feed_parser.feedparser.parse", lambda content: ParsedFeed())
+    fake_session = _FakeSession(_FakeResponse())
+
+    with caplog.at_level("WARNING"):
+        result = await fetch_feed("Fake Feed", "https://example.com/rss", session=fake_session)
+
+    assert result["status"] == "no_updates"
+    assert "suspicious feed response" in caplog.text
+    assert "content_type_is_html" in caplog.text
+    assert "entries=0" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_fetch_feed_includes_bozo_exception_in_warning(monkeypatch, caplog):
+    class ParsedFeed:
+        bozo = 1
+        bozo_exception = ValueError("bad xml")
+        entries = []
+        feed = {}
+
+    monkeypatch.setattr("src.feed_parser.feedparser.parse", lambda content: ParsedFeed())
+    fake_session = _FakeSession(_FakeResponse(content_type="application/xml", body=b"<xml>bad</xml>"))
+
+    with caplog.at_level("WARNING"):
+        result = await fetch_feed("Bad XML", "https://example.com/rss", session=fake_session)
+
+    assert result["status"] == "error"
+    assert "bozo=1" in caplog.text
+    assert "bad xml" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_fetch_feed_xml_fallback_extracts_namespaced_rss_items(monkeypatch):
+    class ParsedFeed:
+        bozo = 0
+        bozo_exception = None
+        entries = []
+        feed = {}
+
+    xml_body = b"""<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>DRAMX</title>
+    <item>
+      <title>HBM demand rises</title>
+      <link>https://example.com/post-1</link>
+      <description>HBM and CoWoS update</description>
+      <pubDate>Wed, 05 Mar 2026 00:00:00 GMT</pubDate>
+    </item>
+  </channel>
+</rss>
+"""
+
+    monkeypatch.setattr("src.feed_parser.feedparser.parse", lambda content: ParsedFeed())
+    fake_session = _FakeSession(_FakeResponse(content_type="application/xml; charset=utf-8", body=xml_body))
+
+    result = await fetch_feed("DRAMx", "https://example.com/rss", session=fake_session, keywords=["HBM"])
+
+    assert result["status"] == "success"
+    assert len(result["posts"]) == 1
+    assert result["posts"][0]["title"] == "HBM demand rises"
+
+
+@pytest.mark.asyncio
+async def test_fetch_feed_marks_likely_antibot_block(monkeypatch, caplog):
+    class ParsedFeed:
+        bozo = 0
+        bozo_exception = None
+        entries = []
+        feed = {}
+
+    monkeypatch.setattr("src.feed_parser.feedparser.parse", lambda content: ParsedFeed())
+    fake_session = _FakeSession(
+        _FakeResponse(content_type="text/html; charset=utf-8", body=b'<script src="/_guard/auto.js"></script>')
+    )
+
+    with caplog.at_level("WARNING"):
+        await fetch_feed("Expreview", "https://example.com/rss", session=fake_session)
+
+    assert "likely_anti_bot_block" in caplog.text
