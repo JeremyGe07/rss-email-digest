@@ -9,7 +9,6 @@
 <outline type="rss" xmlUrl="https://www.ithome.com/rss/" title="IT之家" text="IT之家" htmlUrl="https://www.ithome.com"/>
 <outline type="rss" xmlUrl="https://www.expreview.com/rss.php" title="超能网 Expreview" text="超能网 Expreview" htmlUrl="https://www.expreview.com"/>
 <outline type="rss" xmlUrl="https://www.ruanyifeng.com/blog/atom.xml" title="阮一峰的网络日志" text="阮一峰的网络日志" htmlUrl="https://www.ruanyifeng.com/blog/"/>
-<outline type="rss" xmlUrl="https://iccircle.com/feed" title="IC技术圈" text="IC技术圈" htmlUrl="https://iccircle.com"/>
 <outline type="rss" xmlUrl="https://www.synopsys.com/snps/blogs/chip-design.en-us.xml" title="Synopsys Chip Design Blog" text="Synopsys Chip Design Blog" htmlUrl="https://www.synopsys.com/snps/blogs/chip-design.html"/>
 <outline type="rss" xmlUrl="http://feeds.feedburner.com/cadence/community/blogs" title="Cadence Community Blogs" text="Cadence Community Blogs" htmlUrl="https://community.cadence.com"/>
 <outline type="rss" xmlUrl="https://community.arm.com/arm-community-blogs/b/mainfeed?Type=BlogsOnly" title="ARM Community Blogs" text="ARM Community Blogs" htmlUrl="https://community.arm.com"/>
