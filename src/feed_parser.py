@@ -66,7 +66,7 @@ DEFAULT_TOPIC_FILTER = {
     "exclude": [
         "提示词", "prompt", "教程", "使用技巧", "上手", "AI绘画", "AIGC", "文生图", "视频生成", "聊天机器人",
         "应用", "插件", "工作流", "手机", "平板", "耳机", "相机", "手表", "家电", "评测", "开箱", "跑分",
-        "游戏", "电竞", "车机", "智驾", "自动驾驶","车型","雷达",
+        "游戏", "电竞", "车机", "智驾", "自动驾驶", "车型", "雷达", "电视", "数据中心",
         # 英文强排除词：泛 AI 内容
         "prompting", "prompt engineer", "prompt engineering", "how to", "tutorial", "guide", "walkthrough",
         "tips", "tricks", "ai tool", "ai tools",
