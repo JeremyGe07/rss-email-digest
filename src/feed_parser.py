@@ -8,6 +8,7 @@ from typing import List, Dict, Union
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import time
+from urllib.parse import urljoin
 import aiohttp
 import feedparser
 import asyncio
@@ -25,6 +26,7 @@ DEFAULT_FETCH_USER_AGENT = (
     "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 RSSDigestBot/1.0"
 )
 DEFAULT_DEBUG_SNIPPET_LENGTH = 200
+DEFAULT_MAX_PAGES_PER_FEED = 3
 
 
 DEFAULT_AI_SEMICONDUCTOR_KEYWORDS = [
@@ -327,6 +329,49 @@ def _extract_entries_from_xml_fallback(content: bytes) -> List[Dict]:
     return extracted_entries
 
 
+def _extract_next_link_from_xml(content: bytes) -> Union[str, None]:
+    """Try to read atom-style rel=next link directly from XML payload."""
+    try:
+        root = ET.fromstring(content)
+    except Exception:
+        return None
+
+    for node in root.iter():
+        if _localname(node.tag) != "link":
+            continue
+        rel = (node.attrib.get("rel") or "").strip().lower()
+        href = (node.attrib.get("href") or "").strip()
+        if rel == "next" and href:
+            return href
+
+    return None
+
+
+def _extract_next_page_url(feed_obj, content: bytes, current_url: str) -> Union[str, None]:
+    """Extract next-page URL from parsed feed metadata or raw XML."""
+    link_candidates = []
+
+    feed_meta = getattr(feed_obj, "feed", {}) if feed_obj else {}
+    if isinstance(feed_meta, dict):
+        link_candidates.extend(feed_meta.get("links", []) or [])
+
+    top_links = getattr(feed_obj, "links", []) if feed_obj else []
+    if top_links:
+        link_candidates.extend(top_links)
+
+    for link_obj in link_candidates:
+        rel = str(_entry_get(link_obj, "rel", "")).strip().lower()
+        href = str(_entry_get(link_obj, "href", "")).strip()
+        if rel == "next" and href:
+            return urljoin(current_url, href)
+
+    xml_next = _extract_next_link_from_xml(content)
+    if xml_next:
+        return urljoin(current_url, xml_next)
+
+    return None
+
+
 
 
 
@@ -358,6 +403,7 @@ async def fetch_feed(
         keywords = DEFAULT_AI_SEMICONDUCTOR_KEYWORDS
 
     try:
+        max_pages = max(1, int(os.getenv("RSS_MAX_PAGES_PER_FEED", str(DEFAULT_MAX_PAGES_PER_FEED))))
         request_headers = {
             "Accept": DEFAULT_FETCH_ACCEPT,
             "User-Agent": os.getenv("RSS_FETCH_USER_AGENT", DEFAULT_FETCH_USER_AGENT),
@@ -368,43 +414,88 @@ async def fetch_feed(
         if session_owner:
             request_session = aiohttp.ClientSession()
 
+        snippet_length = int(os.getenv("RSS_DEBUG_SNIPPET_LENGTH", str(DEFAULT_DEBUG_SNIPPET_LENGTH)))
+
         try:
-            async with request_session.get(
-                feed_url,
-                timeout=aiohttp.ClientTimeout(total=timeout),
-                headers=request_headers,
-            ) as response:
-                if response.status >= 400:
-                    return {
-                        "name": feed_name,
-                        "status": "error",
-                        "posts": [],
-                        "error_message": f"HTTP {response.status}",
-                        "site_url": html_url
-                    }
-                response_content_type = response.headers.get("Content-Type", "")
-                response_final_url = str(response.url)
-                response_status = response.status
-                content = await response.read()
+            entries = []
+            visited_urls = set()
+            paged_url = feed_url
+            feed = None
+            used_xml_fallback = False
+            response_content_type = ""
+            response_final_url = feed_url
+            response_status = 0
+            content = b""
+            page_count = 0
+
+            while paged_url and page_count < max_pages and paged_url not in visited_urls:
+                visited_urls.add(paged_url)
+                async with request_session.get(
+                    paged_url,
+                    timeout=aiohttp.ClientTimeout(total=timeout),
+                    headers=request_headers,
+                ) as response:
+                    if response.status >= 400:
+                        return {
+                            "name": feed_name,
+                            "status": "error",
+                            "posts": [],
+                            "error_message": f"HTTP {response.status}",
+                            "site_url": html_url
+                        }
+
+                    response_content_type = response.headers.get("Content-Type", "")
+                    response_final_url = str(response.url)
+                    response_status = response.status
+                    content = await response.read()
+
+                page_count += 1
+
+                # Parse feed content from raw bytes for better encoding handling
+                parsed_feed = feedparser.parse(content)
+                if feed is None:
+                    feed = parsed_feed
+
+                has_rss_markers = any(marker in content[:snippet_length].decode("utf-8", errors="replace").lower() for marker in ("<rss", "<feed", "<rdf", "<channel"))
+                parsed_entries = list(getattr(parsed_feed, "entries", []))
+                page_used_xml_fallback = False
+                if not parsed_entries and has_rss_markers and "xml" in response_content_type.lower():
+                    fallback_entries = _extract_entries_from_xml_fallback(content)
+                    if fallback_entries:
+                        parsed_entries = fallback_entries
+                        page_used_xml_fallback = True
+                        logger.info("%s: xml fallback extracted %d entries from page %d", feed_name, len(parsed_entries), page_count)
+
+                used_xml_fallback = used_xml_fallback or page_used_xml_fallback
+                entries.extend(parsed_entries)
+
+                next_page_url = _extract_next_page_url(parsed_feed, content, response_final_url)
+                if not next_page_url or next_page_url in visited_urls:
+                    break
+                paged_url = next_page_url
+
+            if page_count > 1:
+                logger.info("%s: paginated fetch loaded %d pages (entries=%d)", feed_name, page_count, len(entries))
         finally:
             if session_owner and request_session:
                 await request_session.close()
 
-        snippet_length = int(os.getenv("RSS_DEBUG_SNIPPET_LENGTH", str(DEFAULT_DEBUG_SNIPPET_LENGTH)))
         content_head = content[:snippet_length].decode("utf-8", errors="replace").replace("\n", "\\n").replace("\r", "\\r")
 
-        # Parse feed content from raw bytes for better encoding handling
-        feed = feedparser.parse(content)
-
-        has_rss_markers = any(marker in content_head.lower() for marker in ("<rss", "<feed", "<rdf", "<channel"))
-        entries = list(getattr(feed, "entries", []))
-        used_xml_fallback = False
-        if not entries and has_rss_markers and "xml" in response_content_type.lower():
-            fallback_entries = _extract_entries_from_xml_fallback(content)
-            if fallback_entries:
-                entries = fallback_entries
-                used_xml_fallback = True
-                logger.info("%s: xml fallback extracted %d entries", feed_name, len(entries))
+        # Keep first-seen order while deduping across paginated pages.
+        deduped_entries = []
+        seen_entry_keys = set()
+        for entry in entries:
+            key = (
+                str(_entry_get(entry, "id", "") or "").strip(),
+                str(_entry_get(entry, "link", "") or "").strip(),
+                str(_entry_get(entry, "title", "") or "").strip(),
+            )
+            if key in seen_entry_keys:
+                continue
+            seen_entry_keys.add(key)
+            deduped_entries.append(entry)
+        entries = deduped_entries
 
         suspicious_reasons = []
         lowered_head = content_head.lower()

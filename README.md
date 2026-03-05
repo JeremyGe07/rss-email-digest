@@ -55,6 +55,7 @@ Add the following secrets:
 | `MISSING_DATE_FALLBACK_RATIO` | Optional: if missing-date ratio in a feed exceeds this and window candidates are 0, fallback activates | `0.8` |
 | `MISSING_DATE_FALLBACK_LATEST_N` | Optional: when fallback activates, evaluate latest N no-date entries | `3` |
 | `SEEN_POSTS_TTL_DAYS` | Optional: keep sent-post dedupe fingerprints for this many days | `30` |
+| `RSS_MAX_PAGES_PER_FEED` | Optional: follow feed pagination via `rel=next` for up to N pages to avoid missing 24h posts when single-page feeds are capped | `3` |
 | `RSS_FETCH_USER_AGENT` | Optional: HTTP User-Agent used when requesting feeds (helps with some anti-bot feed endpoints) | `Mozilla/... RSSDigestBot/1.0` |
 | `DEDUPE_MODE` | Optional: dedupe strategy: `fallback_only` (default), `all`, or `off` | `fallback_only` |
 
@@ -157,6 +158,7 @@ Each feed now logs metrics like:
 If `window candidates=0`, that usually means the feed returned only old items, or date fields are missing/unparseable for that run.
 If `window candidates>0` but `keyword_hits=0`, check whether custom `TOPIC_KEYWORDS` are too narrow; prefer `TOPIC_KEYWORDS_MODE=append` to keep built-in chip keywords.
 If `entries=0`, the endpoint was reachable but provided no parseable items (sometimes due to anti-bot or non-RSS responses). Check `final_url` and `content_type` in logs.
+If a source only returns a capped first page (for example 60 items), enable pagination by increasing `RSS_MAX_PAGES_PER_FEED` so the parser follows `rel=next` links and collects additional pages.
 To avoid repeatedly sending the same no-date items, sent posts are deduplicated across runs via `.cache/rss-seen-posts.json` (persisted in Actions cache). By default, dedupe applies only to missing-date fallback posts (`DEDUPE_MODE=fallback_only`), so normal fresh-window posts are not suppressed.
 
 ### No email received
