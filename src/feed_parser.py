@@ -25,17 +25,17 @@ DEFAULT_FETCH_USER_AGENT = (
 
 
 DEFAULT_AI_SEMICONDUCTOR_KEYWORDS = [
-    "AI芯片", "晶片", "加速卡", "AI加速卡", "训练卡", "推理卡", "算力卡", "智算卡", "计算卡", "加速器",
+    "芯片", "晶片", "加速卡", "AI加速卡", "训练卡", "推理卡", "算力卡", "智算卡", "计算卡", "加速器",
     "GPU", "NPU", "LPU", "data center gpu", "accelerator", "AI accelerator", "ASIC", "TPU", "DPU", "XPU",
-    "H100", "H200", "B200", "GB200", "Blackwell", "Hopper", "MI300", "Gaudi", "Trainium", "Inferentia",
+    "H100", "GB200", "Blackwell", "Hopper", "Inferentia", "910", "片上",
     "国产GPU", "摩尔线程", "壁仞", "天数智芯", "沐曦", "景嘉微", "寒武纪", "昆仑芯", "昇腾", "海光",
-    "龙芯", "兆芯", "飞腾", "鲲鹏", "HBM", "HBM2e", "HBM3", "HBM3E", "CoWoS", "SoIC", "InFO",
+    "龙芯", "兆芯", "飞腾", "鲲鹏", "HBM", "HBM2e", "HBM3", "HBM3E", "HBM4", "CoWoS", "SoIC", "InFO",
     "Foveros", "EMIB", "Chiplet", "UCIe", "2.5D", "3D封装", "TSV", "interposer", "先进封装", "NVLink",
-    "InfiniBand", "RoCE", "CXL", "PCIe 6.0", "PCIe 5.0", "800G", "硅光", "光模块", "液冷",
+    "InfiniBand", "RoCE", "CXL", "PCIe 6.0", "PCIe 5.0", "800G", "硅光", "光模块", 
 ]
 
 DEFAULT_TOPIC_FILTER = {
-    "threshold_default": 6,
+    "threshold_default": 5,
     "require_strong_hit": True,
     "title_strong_direct_accept": True,
     "weights": {"strong": 6, "medium": 2, "weak": 1},
@@ -44,10 +44,10 @@ DEFAULT_TOPIC_FILTER = {
         "台积电", "TSMC", "三星代工", "Intel Foundry", "foundry", "制程", "EUV", "High-NA", "3nm", "2nm",
         "GAA", "背面供电", "良率", "tape-out", "流片", "掩膜", "光刻胶", "EDA", "Synopsys", "Cadence",
         "Siemens EDA", "DRC", "LVS", "PDK", "封装产能", "CoWoS产能", "HBM产能", "ABF", "inference",
-        "training", "推理", "训练", "数据中心", "AI 服务器", "训练集群", "推理集群", "架构",
+        "training", "推理", "训练", "数据中心", "服务器", "训练集群", "推理集群", "架构",
         # 存储/内存
         "存储", "内存", "闪存", "固态", "SSD", "DRAM", "NAND", "NOR", "eMMC", "UFS",
-        "memory", "storage", "flash", "ssd", "dram", "nand", "nor",
+        "memory", "storage", "flash", "ssd", "dram", "nand", "nor", "存算",
         # 晶圆/制造/光刻/材料
         "晶圆", "wafer", "wafer fab", "fab",
         "光刻", "光刻机", "lithography", "scanner",
@@ -59,7 +59,7 @@ DEFAULT_TOPIC_FILTER = {
         # 供应侧更具体（替代“供应链”）
         "交付", "缺货", "供给", "扩产", "产能", "lead time", "shortage", "capacity", "ramp",
     ],
-    "weak": ["CUDA", "ROCm", "oneAPI", "TensorRT", "OpenXLA", "编译器", "驱动"],
+    "weak": ["CUDA", "ROCm", "oneAPI", "TensorRT", "OpenXLA", "编译器", "驱动", "AI"],
     "exclude": [
         "提示词", "prompt", "教程", "使用技巧", "上手", "AI绘画", "AIGC", "文生图", "视频生成", "聊天机器人",
         "应用", "插件", "工作流", "手机", "平板", "耳机", "相机", "手表", "家电", "评测", "开箱", "跑分",
@@ -73,8 +73,7 @@ DEFAULT_TOPIC_FILTER = {
         # 英文强排除词：泛应用/产品经理类
         "plugin", "workflow", "productivity",
         # 消费电子/移动端噪音
-        "android", "ios", "airtag", "luggage", "smart home", "wearable",
-        "launch event", "price", "discount",
+        "android", "ios", "airtag", "luggage", "smart home", "wearable", "discount",
     ],
 }
 
