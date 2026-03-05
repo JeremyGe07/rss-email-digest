@@ -290,3 +290,51 @@ async def test_fetch_feed_marks_likely_antibot_block(monkeypatch, caplog):
         await fetch_feed("Expreview", "https://example.com/rss", session=fake_session)
 
     assert "likely_anti_bot_block" in caplog.text
+
+
+class _SequentialFakeSession:
+    def __init__(self, responses_by_url):
+        self.responses_by_url = responses_by_url
+
+    def get(self, url, *args, **kwargs):
+        return _FakeRequestCtx(self.responses_by_url[url])
+
+
+@pytest.mark.asyncio
+async def test_fetch_feed_follows_next_page_links(monkeypatch):
+    page1_body = b"<feed><entry></entry><link rel='next' href='https://example.com/rss?page=2' /></feed>"
+    page2_body = b"<feed><entry></entry></feed>"
+
+    class ParsedFeedPage1:
+        bozo = 0
+        bozo_exception = None
+        feed = {"links": [{"rel": "next", "href": "https://example.com/rss?page=2"}], "link": "https://example.com"}
+        entries = [
+            {"title": "HBM news 1", "link": "https://example.com/post-1", "summary": "HBM", "published_parsed": datetime.now(timezone.utc).timetuple()}
+        ]
+
+    class ParsedFeedPage2:
+        bozo = 0
+        bozo_exception = None
+        feed = {"links": [], "link": "https://example.com"}
+        entries = [
+            {"title": "HBM news 2", "link": "https://example.com/post-2", "summary": "HBM", "published_parsed": datetime.now(timezone.utc).timetuple()}
+        ]
+
+    def fake_parse(content):
+        if content == page1_body:
+            return ParsedFeedPage1()
+        if content == page2_body:
+            return ParsedFeedPage2()
+        raise AssertionError("Unexpected content")
+
+    monkeypatch.setattr("src.feed_parser.feedparser.parse", fake_parse)
+    fake_session = _SequentialFakeSession({
+        "https://example.com/rss": _FakeResponse(content_type="application/atom+xml", body=page1_body, url="https://example.com/rss"),
+        "https://example.com/rss?page=2": _FakeResponse(content_type="application/atom+xml", body=page2_body, url="https://example.com/rss?page=2"),
+    })
+
+    result = await fetch_feed("Paged Feed", "https://example.com/rss", session=fake_session, keywords=["HBM"])
+
+    assert result["status"] == "success"
+    assert len(result["posts"]) == 2
